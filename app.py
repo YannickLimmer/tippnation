@@ -3,7 +3,6 @@ import json
 import streamlit as st
 import pandas as pd
 import os
-import datetime
 
 
 ss = st.session_state
@@ -26,32 +25,45 @@ def save_data(filepath, df):
 
 
 # Function to create columns and input fields
-def create_tip_entries(name, matches, factor_budget):
+def create_tip_entries(name, matches, factor_budget, data):
     n_cols = len(matches)
     entries = []
-    for i in range(n_cols):
-        if f"factor_{i}" not in ss:
-            ss[f"factor_{i}"] = 1
+    manage_factor_budget(n_cols, name, matches, data)
     for i, col in enumerate(st.columns(4)):
         with col:
             if i < n_cols:
                 dt, name_a, name_b = matches[i]
-                now = get_now()
-                if pd.Timestamp(dt) > now:
+                if pd.Timestamp(dt) > get_now():
                     factor, team_a_score, team_b_score = create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget)
-                    entries.append({
+                    entries.append(
+                        {
                             f"Name": name,
                             f"TeamA": name_a,
                             f"TeamB": name_b,
                             f"ScoreA": team_a_score,
                             "ScoreB": team_b_score,
                             f"Factor": factor,
-                    })
+                        }
+                    )
     return entries
 
 
+def manage_factor_budget(n_cols, name, matches, data):
+    for i in range(n_cols):
+        if f"factor_{i}" not in ss:
+            ss[f"factor_{i}"] = 1
+        dt, name_a, name_b = matches[i]
+        if pd.Timestamp(dt) < get_now():
+            if (name, name_a, name_b) in data.index:
+                ss[f"factor_{i}"] = data.loc[(name, name_a, name_b), :].Factor.astype(int)
+            else:
+                ss[f"factor_{i}"] = 0
+
+
 def get_now():
-    return datetime.datetime.now()  # For testing pd.Timestamp(2024, 6, 19, 19, 0, 0, 0)
+    # return datetime.datetime.now()
+    # For testing
+    return pd.Timestamp(2024, 6, 19, 19, 0, 0, 0)
 
 
 def create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget):
@@ -97,10 +109,11 @@ def main():
         schedule["Team A"].values[match_indices],
         schedule["Team B"].values[match_indices]),
     )
-    entries = create_tip_entries(name, matches, 10)
 
     data_filepath = f"data/tips/{date_str}.csv"
     data = load_data(data_filepath)
+
+    entries = create_tip_entries(name, matches, 10, data)
 
     if st.button("Submit"):
         if pwd == user_info[name]["Password"]:
