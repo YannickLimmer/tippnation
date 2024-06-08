@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 import streamlit as st
 import pandas as pd
@@ -61,7 +62,7 @@ def manage_factor_budget(n_cols, name, matches, data):
 
 
 def get_now():
-    # return datetime.datetime.now()
+    # return datetime.now()
     # For testing
     return pd.Timestamp(2024, 6, 19, 19, 0, 0, 0)
 
@@ -80,11 +81,7 @@ def create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget):
 
 
 # Main function
-def main():
-    for key, value in ss.items():
-        ss[key] = value
-
-    st.set_page_config(layout="wide")
+def make_entries():
     st.title("Team Scores Entry")
 
     with open("data/Players.json", "r") as fp:
@@ -113,6 +110,12 @@ def main():
     data_filepath = f"data/tips/{date_str}.csv"
     data = load_data(data_filepath)
 
+    if st.button("Display your current entries"):
+        if pwd == user_info[name]["Password"]:
+            st.dataframe(data[data.reset_index()["Name"].values == name])
+        else:
+            st.warning("Password is incorrect. Are you trying to cheat?")
+
     entries = create_tip_entries(name, matches, 10, data)
 
     if st.button("Submit"):
@@ -125,7 +128,16 @@ def main():
         else:
             st.warning("Password is incorrect. Are you trying to cheat?")
 
-    st.dataframe(data)
+    # st.dataframe(data)
+
+
+def main():
+    for key, value in ss.items():
+        ss[key] = value
+    st.set_page_config(layout="wide")
+    tabs = st.tabs(["Enter Scores", "View Entries"])
+    with tabs[0]:
+        make_entries()
 
 
 if __name__ == "__main__":
