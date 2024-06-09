@@ -22,6 +22,9 @@ def main():
     with open("data/Players.json", "r") as fp:
         ss["user_info"] = json.load(fp)
 
+    with open("data/Admin.json", "r") as fp:
+        ss["Types"] = json.load(fp)["Types"]
+
     if DEV_FLAG:
         with st.container(border=True):
             cols = st.columns(4)

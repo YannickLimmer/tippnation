@@ -4,14 +4,14 @@ import streamlit as st
 from util import get_now, ss, load_data, INDEX_COLUMNS, save_data, country_name_to_flag
 
 
-def create_tip_entries(name, matches, factor_budget, data):
+def create_tip_entries(name, matches, data):
     n_cols = len(matches)
     entries = []
-    manage_factor_budget(n_cols, name, matches, data)
+    factor_budget = manage_factor_budget(n_cols, name, matches, data)
     for i, col in enumerate(st.columns(4)):
         with col:
             if i < n_cols:
-                dt, name_a, name_b = matches[i]
+                dt, name_a, name_b, _ = matches[i]
                 if pd.Timestamp(dt) > get_now():
                     factor, team_a_score, team_b_score = create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget)
                     entries.append(
@@ -28,15 +28,18 @@ def create_tip_entries(name, matches, factor_budget, data):
 
 
 def manage_factor_budget(n_cols, name, matches, data):
+    factor_budget = 0
     for i in range(n_cols):
         if f"factor_{i}" not in ss:
             ss[f"factor_{i}"] = 1
-        dt, name_a, name_b = matches[i]
+        dt, name_a, name_b, t = matches[i]
+        factor_budget += ss["Types"][t]["MaxFactor"]
         if pd.Timestamp(dt) < get_now():
             if (name, name_a, name_b) in data.index:
                 ss[f"factor_{i}"] = data.loc[(name, name_a, name_b), :].Factor.astype(int)
             else:
                 ss[f"factor_{i}"] = 0
+    return factor_budget
 
 
 def create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget):
@@ -47,8 +50,13 @@ def create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget):
             team_a_score = st.number_input(name_a + " " + country_name_to_flag(name_a), step=1, key=f"team_a_{i}")
         with cr:
             team_b_score = st.number_input(name_b + " " + country_name_to_flag(name_b), step=1, key=f"team_b_{i}")
-        used_budget = sum([ss[f"factor_{j}"] for j in range(n_cols) if i != j])
-        factor = st.slider("Factor", 1, factor_budget - used_budget, key=f"factor_{i}")
+        budget = factor_budget - sum([ss[f"factor_{j}"] for j in range(n_cols) if i != j])
+        if budget == 1:
+            ss[f"factor_{i}"] = 1
+            factor = 1
+            st.write("Factor is set to 1")
+        else:
+            factor = st.slider("Factor", 1, budget, key=f"factor_{i}")
     return factor, team_a_score, team_b_score
 
 
@@ -70,8 +78,9 @@ def make_entries():
     matches = list(zip(
         schedule["Datetime"].values[match_indices],
         schedule["TeamA"].values[match_indices],
-        schedule["TeamB"].values[match_indices]),
-    )
+        schedule["TeamB"].values[match_indices],
+        schedule["Type"].values[match_indices],
+    ))
 
     data = load_data(date_str)
 
@@ -81,7 +90,7 @@ def make_entries():
         else:
             st.warning("Password is incorrect. Are you trying to cheat?")
 
-    entries = create_tip_entries(name, matches, 10, data)
+    entries = create_tip_entries(name, matches, data)
 
     if st.button("Submit"):
         if pwd == user_info[name]["Password"]:

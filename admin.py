@@ -21,7 +21,7 @@ def modify_schedule():
         if pwd == admin["Password"]:
             schedule.to_csv("data/Schedule.csv")
             st.success("Changes have been saved successfully!")
-            compute_points(schedule, admin["Types"])
+            compute_points(schedule, ss["Types"])
             st.success("Computation of points completed!")
         else:
             st.warning("Password is incorrect.")
