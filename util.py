@@ -8,7 +8,7 @@ ss = st.session_state
 COLUMNS = ["Name", f"TeamA", f"TeamB", f"ScoreA", "ScoreB", f"Factor"]
 DTYPES = {"Name": str, f"TeamA": str, f"TeamB": str, f"ScoreA": int, "ScoreB": int, f"Factor": int}
 INDEX_COLUMNS = ["Name", f"TeamA", f"TeamB"]
-DEV_FLAG = False
+DEV_FLAG = True
 ROOT = os.getcwd()
 
 
@@ -21,7 +21,7 @@ def load_data(date_str):
 
 
 def save_data(date_str, df):
-    filepath = ROOT + f"data/tips/{date_str}.csv"
+    filepath = ROOT + f"/data/tips/{date_str}.csv"
     df.to_csv(filepath, index=True)
 
 
