@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import streamlit as st
 from util import ss, load_data, INDEX_COLUMNS, get_now, country_name_to_flag
@@ -18,6 +19,7 @@ def display_entries():
             ).set_index(["Datetime", "Type", "ResultA", "ResultB"] + INDEX_COLUMNS) for d in dates
         ]
         df = pd.concat(dfs, axis=0)
+        max_factor = int(np.ceil(df["Factor"].values.max()))
 
         if False:
             df = df.reset_index()
@@ -43,7 +45,7 @@ def display_entries():
                     help="The factor applied to this game",
                     format="%f",
                     min_value=0,
-                    max_value=10,
+                    max_value=max_factor,
                     width="small",
                 ) for k in df.columns if "X" in k
             } | {
