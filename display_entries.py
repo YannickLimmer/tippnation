@@ -1,14 +1,22 @@
 import pandas as pd
 import streamlit as st
-from util import ss, load_data
+from util import ss, load_data, INDEX_COLUMNS, get_now
 
 
 def display_entries():
-
+    schedule = ss["schedule"]
     unique_dates = [s.strftime('%d-%b') for s in ss["schedule"].Datetime.dt.date.unique()]
     dates = st.multiselect("Choose dates to display", unique_dates)
     if dates:
-        df = pd.concat([load_data(d) for d in dates], axis=0)
+        dfs = [
+            pd.merge(
+                load_data(d).reset_index(),
+                schedule[schedule.Datetime.dt.date.apply(lambda s: s.strftime('%d-%b')) == d],
+                on=["TeamA", "TeamB"],
+            ).set_index(["Datetime"] + INDEX_COLUMNS) for d in dates
+        ]
+        df = pd.concat(dfs, axis=0)
+        df = df.loc[(df.reset_index().Datetime < get_now()).values, :]
         df = df.rename({"ScoreA": "A", "ScoreB": "B", "Factor": "X"}, axis=1)
         df = df.unstack('Name').fillna(0)
         df.columns = df.columns.swaplevel(0, 1)
@@ -23,9 +31,7 @@ def display_entries():
                     max_value=10,
                     width="small",
                 ) for k in df.columns if "X" in k
+            } | {
+                "Datetime": st.column_config.DateColumn("Date", format="DD-MMM, HH:mm")
             },
         )
-        # cols = st.columns(len(df.columns) + 1)
-        # for col, df_col in zip(cols[1:], df.columns):
-        #     st.table(df[col])
-    # st.dataframe(ss["schedule"])

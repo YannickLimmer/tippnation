@@ -70,8 +70,8 @@ def make_entries():
     match_indices = schedule.Datetime.dt.date.apply(lambda s: s.strftime('%d-%b')) == date_str
     matches = list(zip(
         schedule["Datetime"].values[match_indices],
-        schedule["Team A"].values[match_indices],
-        schedule["Team B"].values[match_indices]),
+        schedule["TeamA"].values[match_indices],
+        schedule["TeamB"].values[match_indices]),
     )
 
     data = load_data(date_str)

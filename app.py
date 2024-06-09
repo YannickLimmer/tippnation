@@ -14,7 +14,7 @@ def main():
 
     st.set_page_config(layout="wide")
 
-    ss["schedule"] = pd.read_csv("data/Schedule.csv")
+    ss["schedule"] = pd.read_csv("data/Schedule.csv", index_col="Index")
     ss["schedule"]["Datetime"] = pd.to_datetime(ss["schedule"]["Datetime"])
 
     with open("data/Players.json", "r") as fp:
