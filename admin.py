@@ -2,6 +2,7 @@ import json
 
 import streamlit as st
 
+from points import compute_points
 from util import ss
 
 
@@ -20,7 +21,7 @@ def modify_schedule():
         if pwd == admin["Password"]:
             schedule.to_csv("data/Schedule.csv")
             st.success("Changes have been saved successfully!")
-            # compute_points()
+            compute_points(schedule)
             st.success("Computation of points completed!")
         else:
             st.warning("Password is incorrect.")

@@ -15,7 +15,7 @@ def display_entries():
                 load_data(d).reset_index(),
                 schedule[schedule.Datetime.dt.date.apply(lambda s: s.strftime('%d-%b')) == d],
                 on=["TeamA", "TeamB"],
-            ).set_index(["Datetime", "ResultA", "ResultB"] + INDEX_COLUMNS) for d in dates
+            ).set_index(["Datetime", "Type", "ResultA", "ResultB"] + INDEX_COLUMNS) for d in dates
         ]
         df = pd.concat(dfs, axis=0)
         df = df.loc[(df.reset_index().Datetime < get_now()).values, :]
