@@ -4,7 +4,7 @@ import streamlit as st
 from util import ss, load_data, INDEX_COLUMNS
 
 
-def compute_points(schedule):
+def compute_points(schedule, types):
     dates = [s.strftime('%d-%b') for s in ss["schedule"].Datetime.dt.date.unique()]
     dfs = [
         pd.merge(
@@ -19,8 +19,8 @@ def compute_points(schedule):
     df = df[~(pd.isna(df["ScoreA"]) | pd.isna(df["ScoreB"]) | pd.isna(df["ResultA"]) | pd.isna(df["ResultB"]))]
     df["Base"] = compute_base(df)
     df["FBase"] = df["Base"] * df["Factor"]
-    df['Best'] = compute_best(df)
-    df['Fav'] = compute_fav(df)
+    df['Best'] = compute_best(df, types)
+    df['Fav'] = compute_fav(df, types)
     df['Final'] = df.FBase + df.Best + df.Fav
     df.to_csv("data/Points.csv")
 
@@ -45,17 +45,18 @@ def compute_base(df):
     return base
 
 
-def compute_best(df):
+def compute_best(df, types):
     by_match = df.groupby(['TeamA', 'TeamB', 'Datetime'])['Base']
     is_unique_max = by_match.transform(lambda x: x[x == x.max()].count() == 1)
-    return ((df['Base'] == by_match.transform('max')) & is_unique_max).astype(int) * 6
+    return ((df['Base'] == by_match.transform('max')) & is_unique_max) * df["Type"].apply(lambda s: types[s]["Best"])
 
 
-def compute_fav(df):
+def compute_fav(df, types):
+    w = df["Type"].apply(lambda s: types[s]["Favorite"])
     return (df["Favorite"] == df["TeamA"]) * (
-        4 * (df["ResultA"] > df["ResultB"]) + 2 * (df["ResultA"] == df["ResultB"]) - 4 * (df["ResultA"] < df["ResultB"])
+        w * (df["ResultA"] > df["ResultB"]) + 2 * (df["ResultA"] == df["ResultB"]) - 4 * (df["ResultA"] < df["ResultB"])
     ) + (df["Favorite"] == df["TeamB"]) * (
-        4 * (df["ResultA"] < df["ResultB"]) + 2 * (df["ResultA"] == df["ResultB"]) - 4 * (df["ResultA"] > df["ResultB"])
+        w * (df["ResultA"] < df["ResultB"]) + 2 * (df["ResultA"] == df["ResultB"]) - 4 * (df["ResultA"] > df["ResultB"])
     )
 
 
