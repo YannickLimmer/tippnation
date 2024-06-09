@@ -3,7 +3,7 @@ import json
 import streamlit as st
 
 from points import compute_points
-from util import ss
+from util import ss, ROOT
 
 
 def modify_schedule():
@@ -17,7 +17,7 @@ def modify_schedule():
         button = st.button("Save and Compute Points")
     if button:
         if pwd == st.secrets["Admin"]["Password"]:
-            schedule.to_csv("data/Schedule.csv")
+            schedule.to_csv(ROOT + "/data/Schedule.csv")
             st.success("Changes have been saved successfully!")
             compute_points(schedule, ss["Types"])
             st.success("Computation of points completed!")

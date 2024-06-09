@@ -7,7 +7,7 @@ from admin import modify_schedule
 from display_entries import display_entries
 from display_points import display_points
 from make_entries import make_entries
-from util import ss, DEV_FLAG
+from util import ss, DEV_FLAG, ROOT
 
 
 def main():
@@ -16,13 +16,13 @@ def main():
 
     st.set_page_config(layout="wide")
 
-    ss["schedule"] = pd.read_csv("data/Schedule.csv", index_col="Index")
+    ss["schedule"] = pd.read_csv(ROOT + "/data/Schedule.csv", index_col="Index")
     ss["schedule"]["Datetime"] = pd.to_datetime(ss["schedule"]["Datetime"])
 
-    with open("data/Players.json", "r") as fp:
+    with open(ROOT + "/data/Players.json", "r") as fp:
         ss["user_info"] = json.load(fp)
 
-    with open("data/Admin.json", "r") as fp:
+    with open(ROOT + "/data/Admin.json", "r") as fp:
         ss["Types"] = json.load(fp)["Types"]
 
     if DEV_FLAG:

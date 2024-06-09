@@ -2,9 +2,11 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from util import ROOT
+
 
 def display_points():
-    df = pd.read_csv('data/Points.csv')
+    df = pd.read_csv(ROOT + '/data/Points.csv')
     if df.empty:
         return
     df = df.rename({"TeamA": "Team A", "TeamB": "Team B", "ResultA": "Result A", "ResultB": "Result B"}, axis=1)
