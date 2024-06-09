@@ -53,7 +53,7 @@ def create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget):
 
 
 def make_entries():
-    st.title("Team Scores Entry")
+    st.title("Score Entries")
 
     schedule = ss["schedule"]
     user_info = ss["user_info"]
@@ -74,8 +74,7 @@ def make_entries():
         schedule["Team B"].values[match_indices]),
     )
 
-    data_filepath = f"data/tips/{date_str}.csv"
-    data = load_data(data_filepath)
+    data = load_data(date_str)
 
     if st.button("Display your current entries"):
         if pwd == user_info[name]["Password"]:
@@ -90,7 +89,7 @@ def make_entries():
             new_data = pd.DataFrame(entries).set_index(INDEX_COLUMNS)
             for idx in new_data.index:
                 data.loc[idx, :] = new_data.loc[idx, :]
-            save_data(data_filepath, data)
+            save_data(date_str, data)
             st.success("Entries have been saved successfully!")
         else:
             st.warning("Password is incorrect. Are you trying to cheat?")
