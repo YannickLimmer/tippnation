@@ -22,7 +22,7 @@ def compute_points(schedule, types):
     df['Best'] = compute_best(df, types)
     df['Fav'] = compute_fav(df, types)
     df['Final'] = df.FBase + df.Best + df.Fav
-    df.to_csv("data/Points.csv")
+    df.to_csv("data/Points.csv", index=False)
 
 
 def compute_base(df):

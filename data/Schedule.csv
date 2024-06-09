@@ -1,5 +1,5 @@
 Index,Datetime,Type,TeamA,TeamB,ResultA,ResultB
-0,2024-06-14 21:00:00,Group,Germany,Scotland,0.0,1.0
+0,2024-06-14 21:00:00,Group,Germany,Scotland,,
 1,2024-06-15 15:00:00,Group,Hungary,Switzerland,,
 2,2024-06-15 18:00:00,Group,Spain,Croatia,,
 3,2024-06-15 21:00:00,Group,Italy,Albania,,
