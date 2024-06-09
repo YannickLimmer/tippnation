@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 import pandas as pd
+import pycountry as pycountry
 import streamlit as st
 
 ss = st.session_state
@@ -29,3 +30,49 @@ def get_now():
         return datetime.combine(ss["dev_date"], ss["dev_time"])
 
     return datetime.now()
+
+
+FLAG_DICT = {
+     'Albania': '🇦🇱',
+     'Austria': '🇦🇹',
+     'Belgium': '🇧🇪',
+     'Croatia': '🇭🇷',
+     'Czech Republic': '🇨🇿',
+     'Denmark': '🇩🇰',
+     'England': '🏴\U000e0067\U000e0062\U000e0065\U000e006e\U000e0067\U000e007f',
+     'France': '🇫🇷',
+     'Georgia': '🇬🇪',
+     'Germany': '🇩🇪',
+     'Hungary': '🇭🇺',
+     'Italy': '🇮🇹',
+     'Netherlands': '🇳🇱',
+     'Poland': '🇵🇱',
+     'Portugal': '🇵🇹',
+     'Romania': '🇷🇴',
+     'Scotland': '🏴\U000e0067\U000e0062\U000e0073\U000e0063\U000e0074\U000e007f',
+     'Serbia': '🇷🇸',
+     'Slovakia': '🇸🇰',
+     'Slovenia': '🇸🇮',
+     'Spain': '🇪🇸',
+     'Switzerland': '🇨🇭',
+     'Turkey': '🇹🇷',
+     'Ukraine': '🇺🇦',
+     'Wales': '🏴\U000e0067\U000e0062\U000e0077\U000e006c\U000e0073\U000e007f'
+}
+
+
+def country_name_to_flag(country_name):
+    return FLAG_DICT.get(country_name, "")
+    # try:
+    #     # Get the country alpha_2 code using pycountry
+    #     country = pycountry.countries.get(name=country_name)
+    #     if not country:
+    #         return ""
+    #
+    #     # Convert the alpha_2 code to the corresponding emoji
+    #     code = country.alpha_2
+    #     flag = chr(ord(code[0]) + 127397) + chr(ord(code[1]) + 127397)
+    #     return flag
+    # except Exception as e:
+    #     return ""
+

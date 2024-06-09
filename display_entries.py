@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from util import ss, load_data, INDEX_COLUMNS, get_now
+from util import ss, load_data, INDEX_COLUMNS, get_now, country_name_to_flag
 
 
 def display_entries():
@@ -18,6 +18,13 @@ def display_entries():
             ).set_index(["Datetime", "Type", "ResultA", "ResultB"] + INDEX_COLUMNS) for d in dates
         ]
         df = pd.concat(dfs, axis=0)
+
+        if False:
+            df = df.reset_index()
+            df["TeamA"] = df["TeamA"].apply(country_name_to_flag)
+            df["TeamB"] = df["TeamB"].apply(country_name_to_flag)
+            df = df.set_index(["Datetime", "Type", "ResultA", "ResultB"] + INDEX_COLUMNS)
+
         df = df.loc[(df.reset_index().Datetime < get_now()).values, :]
         df = df.loc[df.reset_index().Name.isin(names).values, :]
 

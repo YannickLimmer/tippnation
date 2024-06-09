@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from util import get_now, ss, load_data, INDEX_COLUMNS, save_data
+from util import get_now, ss, load_data, INDEX_COLUMNS, save_data, country_name_to_flag
 
 
 def create_tip_entries(name, matches, factor_budget, data):
@@ -44,9 +44,9 @@ def create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget):
         st.write(pd.to_datetime(pd.Timestamp(dt)).strftime("%H:%M"))
         cl, cr = st.columns(2)
         with cl:
-            team_a_score = st.number_input(name_a, step=1, key=f"team_a_{i}")
+            team_a_score = st.number_input(name_a + " " + country_name_to_flag(name_a), step=1, key=f"team_a_{i}")
         with cr:
-            team_b_score = st.number_input(name_b, step=1, key=f"team_b_{i}")
+            team_b_score = st.number_input(name_b + " " + country_name_to_flag(name_b), step=1, key=f"team_b_{i}")
         used_budget = sum([ss[f"factor_{j}"] for j in range(n_cols) if i != j])
         factor = st.slider("Factor", 1, factor_budget - used_budget, key=f"factor_{i}")
     return factor, team_a_score, team_b_score
