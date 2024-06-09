@@ -1,0 +1,34 @@
+{
+  "Types": {
+    "Group": {
+      "MaxFactor": 3,
+      "Favorite": 4,
+      "Best": 6
+    },
+    "16": {
+      "MaxFactor": 3,
+      "Favorite": 4,
+      "Best": 6
+    },
+    "8": {
+      "MaxFactor": 3,
+      "Favorite": 4,
+      "Best": 6
+    },
+    "4": {
+      "MaxFactor": 3,
+      "Favorite": 4,
+      "Best": 6
+    },
+    "3": {
+      "MaxFactor": 3,
+      "Favorite": 4,
+      "Best": 6
+    },
+    "Final": {
+      "MaxFactor": 3,
+      "Favorite": 4,
+      "Best": 6
+    }
+  }
+}

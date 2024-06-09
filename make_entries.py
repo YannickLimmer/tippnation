@@ -85,7 +85,7 @@ def make_entries():
     data = load_data(date_str)
 
     if st.button("Display your current entries"):
-        if pwd == user_info[name]["Password"]:
+        if pwd == st.secrets[name]["Password"]:
             st.dataframe(data[data.reset_index()["Name"].values == name])
         else:
             st.warning("Password is incorrect. Are you trying to cheat?")
@@ -93,7 +93,7 @@ def make_entries():
     entries = create_tip_entries(name, matches, data)
 
     if st.button("Submit"):
-        if pwd == user_info[name]["Password"]:
+        if pwd == st.secrets[name]["Password"]:
             new_data = pd.DataFrame(entries).set_index(INDEX_COLUMNS)
             for idx in new_data.index:
                 data.loc[idx, :] = new_data.loc[idx, :]

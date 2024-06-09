@@ -16,9 +16,7 @@ def modify_schedule():
     with cols[1]:
         button = st.button("Save and Compute Points")
     if button:
-        with open("data/Admin.json", "r") as fp:
-            admin = json.load(fp)
-        if pwd == admin["Password"]:
+        if pwd == st.secrets["Admin"]["Password"]:
             schedule.to_csv("data/Schedule.csv")
             st.success("Changes have been saved successfully!")
             compute_points(schedule, ss["Types"])
