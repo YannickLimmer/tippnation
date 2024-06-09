@@ -7,7 +7,9 @@ def display_entries():
     schedule = ss["schedule"]
     unique_dates = [s.strftime('%d-%b') for s in ss["schedule"].Datetime.dt.date.unique()]
     dates = st.multiselect("Choose dates to display", unique_dates)
-    if dates:
+    all_names = list(ss["user_info"].keys())
+    names = st.multiselect("Choose players to display", options=all_names, default=all_names)
+    if dates and names:
         dfs = [
             pd.merge(
                 load_data(d).reset_index(),
@@ -17,6 +19,9 @@ def display_entries():
         ]
         df = pd.concat(dfs, axis=0)
         df = df.loc[(df.reset_index().Datetime < get_now()).values, :]
+        df = df.loc[df.reset_index().Name.isin(names).values, :]
+
+        # Display
         df = df.rename({"ScoreA": "A", "ScoreB": "B", "Factor": "X"}, axis=1)
         df = df.unstack('Name')
         for col in df.columns:
