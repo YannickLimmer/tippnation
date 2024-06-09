@@ -53,11 +53,10 @@ def create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget):
 
 
 def make_entries():
-    st.title("Score Entries")
+    # st.title("Score Entries")
 
     schedule = ss["schedule"]
     user_info = ss["user_info"]
-    unique_dates = [s.strftime('%d-%b') for s in schedule.Datetime.dt.date.unique()]
 
     cols = st.columns(4)
     with cols[0]:
