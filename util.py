@@ -2,7 +2,6 @@ import os
 from datetime import datetime
 
 import pandas as pd
-import pycountry as pycountry
 import streamlit as st
 
 ss = st.session_state
