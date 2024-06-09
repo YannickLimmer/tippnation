@@ -8,7 +8,7 @@ from util import ss, ROOT, get_now, load_data, save_data
 from streamlit import logger
 
 # Parameters
-LAMBDA_A = 1.5
+LAMBDA_A = 1.2
 LAMBDA_B = 1.2
 LAMBDA_AB = 0.1
 
