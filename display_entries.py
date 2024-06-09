@@ -19,6 +19,8 @@ def display_entries():
             ).set_index(["Datetime", "Type", "ResultA", "ResultB"] + INDEX_COLUMNS) for d in dates
         ]
         df = pd.concat(dfs, axis=0)
+        if df.empty:
+            return
         max_factor = int(np.ceil(df["Factor"].values.max()))
 
         if False:

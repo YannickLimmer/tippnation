@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from util import ss, load_data, INDEX_COLUMNS, ROOT
+from util import ss, load_data, INDEX_COLUMNS, ROOT, get_now
 
 
 def compute_points(schedule, types):
@@ -15,7 +15,6 @@ def compute_points(schedule, types):
     ]
     df = pd.concat(dfs, axis=0)
     df["Favorite"] = df["Name"].apply(lambda k: ss["user_info"][k].get("Favorite"))
-    # TODO. Enter random tips for missing scores.
     df = df[~(pd.isna(df["ScoreA"]) | pd.isna(df["ScoreB"]) | pd.isna(df["ResultA"]) | pd.isna(df["ResultB"]))]
     df["Base"] = compute_base(df)
     df["FBase"] = df["Base"] * df["Factor"]

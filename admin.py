@@ -1,9 +1,34 @@
-import json
+import logging
 
+import numpy as np
 import streamlit as st
 
 from points import compute_points
-from util import ss, ROOT
+from util import ss, ROOT, get_now, load_data, save_data
+from streamlit import logger
+
+# Parameters
+LAMBDA_A = 1.5
+LAMBDA_B = 1.2
+LAMBDA_AB = 0.1
+
+
+def simulate_outcome():
+    n = np.random.poisson(LAMBDA_AB)
+    x = np.random.poisson(LAMBDA_A) + n
+    y = np.random.poisson(LAMBDA_B) + n
+    return x, y
+
+
+def fill_missing(schedule, types):
+    for i, row in schedule[(schedule.Datetime < get_now()).values].iterrows():
+        df = load_data(row["Datetime"].strftime('%d-%b'))
+        for name in ss["user_info"].keys():
+            if (name, row["TeamA"], row["TeamB"]) not in df.index:
+                logging.info(f"Fill in data for {name, row['TeamA'], row['TeamB']} at date {row['Datetime'].strftime('%d-%b')}")
+                x, y = simulate_outcome()
+                df.loc[(name, row["TeamA"], row["TeamB"])] = {f"ScoreA": x, "ScoreB": y, f"Factor": types[row["Type"]]["MaxFactor"]}
+        save_data(row["Datetime"].strftime('%d-%b'), df)
 
 
 def modify_schedule():
@@ -19,6 +44,8 @@ def modify_schedule():
         if pwd == st.secrets["Admin"]["Password"]:
             schedule.to_csv(ROOT + "/data/Schedule.csv")
             st.success("Changes have been saved successfully!")
+            fill_missing(schedule, ss["Types"])
+            st.success("Missing bets have been inserted!")
             compute_points(schedule, ss["Types"])
             st.success("Computation of points completed!")
         else:
