@@ -10,6 +10,7 @@ ss = st.session_state
 
 COLUMNS = ["Name", f"TeamA", f"TeamB", f"ScoreA", "ScoreB", f"Factor"]
 INDEX_COLUMNS = ["Name", f"TeamA", f"TeamB"]
+DEV_FLAG = True
 
 
 # Function to load existing data
@@ -62,6 +63,8 @@ def manage_factor_budget(n_cols, name, matches, data):
 
 
 def get_now():
+    if DEV_FLAG:
+        return datetime.combine(ss["dev_date"], ss["dev_time"])
     # return datetime.now()
     # For testing
     return pd.Timestamp(2024, 6, 19, 19, 0, 0, 0)
@@ -84,6 +87,14 @@ def create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget):
 def make_entries():
     st.title("Team Scores Entry")
 
+    if DEV_FLAG:
+        with st.container(border=True):
+            cols = st.columns(4)
+            with cols[0]:
+                st.date_input("Developer: Date", key="dev_date")
+            with cols[1]:
+                st.time_input("Developer: Time", key="dev_time")
+
     with open("data/Players.json", "r") as fp:
         user_info = json.load(fp)
 
@@ -98,7 +109,8 @@ def make_entries():
         pwd = st.text_input("Enter Password", type="password")
     with cols[3]:
         # [datetime.date.today().strftime('%d-%b')]
-        date_str = st.selectbox("Date", unique_dates)
+        # date_str = st.selectbox("Date", unique_dates)
+        date_str = st.date_input("Date").strftime('%d-%b')
 
     match_indices = schedule.Datetime.dt.date.apply(lambda s: s.strftime('%d-%b')) == date_str
     matches = list(zip(
