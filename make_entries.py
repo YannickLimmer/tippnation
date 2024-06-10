@@ -13,17 +13,18 @@ def create_tip_entries(name, matches, data):
             if i < n_cols:
                 dt, name_a, name_b, _ = matches[i]
                 if pd.Timestamp(dt) > get_now():
-                    factor, team_a_score, team_b_score = create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget)
-                    entries.append(
-                        {
-                            f"Name": name,
-                            f"TeamA": name_a,
-                            f"TeamB": name_b,
-                            f"ScoreA": team_a_score,
-                            "ScoreB": team_b_score,
-                            f"Factor": factor,
-                        }
-                    )
+                    factor, score_a, score_b, save = create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget)
+                    if save:
+                        entries.append(
+                            {
+                                f"Name": name,
+                                f"TeamA": name_a,
+                                f"TeamB": name_b,
+                                f"ScoreA": score_a,
+                                "ScoreB": score_b,
+                                f"Factor": factor,
+                            }
+                        )
     return entries
 
 
@@ -57,7 +58,8 @@ def create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget):
             st.write("Factor is set to 1")
         else:
             factor = st.slider("Factor", 1, budget, key=f"factor_{i}")
-    return factor, team_a_score, team_b_score
+        save = st.checkbox("Save this entry", key=f"save_{i}")
+    return factor, team_a_score, team_b_score, save
 
 
 def make_entries():
@@ -72,7 +74,7 @@ def make_entries():
     with cols[1]:
         pwd = st.text_input("Enter Password", type="password")
     with cols[3]:
-        date_str = st.date_input("Date").strftime('%d-%b')
+        date_str = st.date_input("Date of Event").strftime('%d-%b')
 
     match_indices = schedule.Datetime.dt.date.apply(lambda s: s.strftime('%d-%b')) == date_str
     matches = list(zip(
