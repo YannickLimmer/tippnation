@@ -21,6 +21,7 @@ def compute_points(schedule, types):
     df['Best'] = compute_best(df, types)
     df['Fav'] = compute_fav(df, types)
     df['Final'] = df.FBase + df.Best + df.Fav
+    st.dataframe(df)
     df.to_csv(ROOT + "/data/Points.csv", index=False)
 
 

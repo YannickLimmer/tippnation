@@ -92,7 +92,12 @@ def make_entries():
 
     entries = create_tip_entries(name, matches, data)
 
-    if st.button("Submit"):
+    if entries:
+        button = st.button("Submit")
+    else:
+        button = False
+
+    if button:
         if pwd == st.secrets[name]["Password"]:
             new_data = pd.DataFrame(entries).set_index(INDEX_COLUMNS)
             for idx in new_data.index:
