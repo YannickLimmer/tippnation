@@ -84,7 +84,7 @@ def make_entries():
 
     data = load_data(date_str)
 
-    if st.button("Display your current entries"):
+    if st.button("Display your current entries for this date"):
         if pwd == st.secrets[name]["Password"]:
             st.dataframe(data[data.reset_index()["Name"].values == name])
         else:
