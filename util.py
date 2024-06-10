@@ -3,12 +3,13 @@ from datetime import datetime
 
 import pandas as pd
 import streamlit as st
+from pytz import timezone
 
 ss = st.session_state
 COLUMNS = ["Name", f"TeamA", f"TeamB", f"ScoreA", "ScoreB", f"Factor"]
 DTYPES = {"Name": str, f"TeamA": str, f"TeamB": str, f"ScoreA": int, "ScoreB": int, f"Factor": int}
 INDEX_COLUMNS = ["Name", f"TeamA", f"TeamB"]
-DEV_FLAG = False
+DEV_FLAG = True
 ROOT = os.getcwd()
 
 
@@ -29,7 +30,7 @@ def get_now():
     if DEV_FLAG:
         return datetime.combine(ss["dev_date"], ss["dev_time"])
 
-    return datetime.now()
+    return datetime.now(timezone("Europe/Paris"))
 
 
 FLAG_DICT = {
