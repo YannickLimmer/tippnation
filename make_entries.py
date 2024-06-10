@@ -68,35 +68,46 @@ def make_entries():
 
     cols = st.columns(4)
     with cols[0]:
-        name = st.selectbox("Select your name", options=list(user_info.keys()))
+        name = st.selectbox("Select your name", options=list(user_info.keys()), index=None, label_visibility='collapsed', placeholder="Select your name")
     with cols[1]:
-        pwd = st.text_input("Enter Password", type="password")
+        pwd = st.text_input("Enter Password", type="password", label_visibility='collapsed', placeholder="Enter Password")
+    with cols[2]:
+        if "login" not in ss:
+            ss["login"] = False
+        if st.button("Login"):
+            if pwd == st.secrets[name]["Password"]:
+                ss["login"] = True
+            else:
+                st.warning("Password is incorrect. Are you trying to cheat?")
     with cols[3]:
-        date_str = st.date_input("Date of Event").strftime('%d-%b')
+        if st.button("Logout"):
+            ss["login"] = False
 
-    match_indices = schedule.Datetime.dt.date.apply(lambda s: s.strftime('%d-%b')) == date_str
-    matches = list(zip(
-        schedule["Datetime"].values[match_indices],
-        schedule["TeamA"].values[match_indices],
-        schedule["TeamB"].values[match_indices],
-        schedule["Type"].values[match_indices],
-    ))
+    entries = []
+    if ss["login"]:
+        cols = st.columns(4)
+        with cols[0]:
+            date_str = st.date_input("Date of Event").strftime('%d-%b')
 
-    data = load_data(date_str)
+        match_indices = schedule.Datetime.dt.date.apply(lambda s: s.strftime('%d-%b')) == date_str
+        matches = list(zip(
+            schedule["Datetime"].values[match_indices],
+            schedule["TeamA"].values[match_indices],
+            schedule["TeamB"].values[match_indices],
+            schedule["Type"].values[match_indices],
+        ))
 
-    if st.button("Display your current entries for this date"):
-        if pwd == st.secrets[name]["Password"]:
-            st.dataframe(data[data.reset_index()["Name"].values == name])
-        else:
-            st.warning("Password is incorrect. Are you trying to cheat?")
+        data = load_data(date_str)
+        # st.dataframe(data[data.reset_index()["Name"].values == name])
+        entries = create_tip_entries(name, matches, data)
 
-    entries = create_tip_entries(name, matches, data)
-
+    button = False
     if entries:
+        st.write("You can only submit all matches at once, but you can change your entries until each game starts!")
         button = st.button("Submit")
     else:
-        button = False
-        st.info("There are no games on this day. Choose a date with events!")
+        if ss["login"]:
+            st.info("There are no games on this day. Choose a date with events!")
 
     if button:
         if pwd == st.secrets[name]["Password"]:
