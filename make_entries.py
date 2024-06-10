@@ -96,6 +96,7 @@ def make_entries():
         button = st.button("Submit")
     else:
         button = False
+        st.info("There are no games on this day. Choose a date with events!")
 
     if button:
         if pwd == st.secrets[name]["Password"]:
