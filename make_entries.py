@@ -13,18 +13,17 @@ def create_tip_entries(name, matches, data):
             if i < n_cols:
                 dt, name_a, name_b, _ = matches[i]
                 if pd.Timestamp(dt) > get_now():
-                    factor, score_a, score_b, save = create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget)
-                    if save:
-                        entries.append(
-                            {
-                                f"Name": name,
-                                f"TeamA": name_a,
-                                f"TeamB": name_b,
-                                f"ScoreA": score_a,
-                                "ScoreB": score_b,
-                                f"Factor": factor,
-                            }
-                        )
+                    factor, score_a, score_b = create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget)
+                    entries.append(
+                        {
+                            f"Name": name,
+                            f"TeamA": name_a,
+                            f"TeamB": name_b,
+                            f"ScoreA": score_a,
+                            "ScoreB": score_b,
+                            f"Factor": factor,
+                        }
+                    )
     return entries
 
 
@@ -39,7 +38,7 @@ def manage_factor_budget(n_cols, name, matches, data):
             if (name, name_a, name_b) in data.index:
                 ss[f"factor_{i}"] = data.loc[(name, name_a, name_b), :].Factor.astype(int)
             else:
-                ss[f"factor_{i}"] = 0
+                ss[f"factor_{i}"] = ss["Types"][t]["MaxFactor"]
     return factor_budget
 
 
@@ -58,8 +57,7 @@ def create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget):
             st.write("Factor is set to 1")
         else:
             factor = st.slider("Factor", 1, budget, key=f"factor_{i}")
-        save = st.checkbox("Save this entry", key=f"save_{i}")
-    return factor, team_a_score, team_b_score, save
+    return factor, team_a_score, team_b_score
 
 
 def make_entries():
