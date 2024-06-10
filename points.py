@@ -14,6 +14,7 @@ def compute_points(schedule, types):
         ) for d in dates
     ]
     df = pd.concat(dfs, axis=0)
+    st.dataframe(df)
     df["Favorite"] = df["Name"].apply(lambda k: ss["user_info"][k].get("Favorite"))
     df = df[~(pd.isna(df["ScoreA"]) | pd.isna(df["ScoreB"]) | pd.isna(df["ResultA"]) | pd.isna(df["ResultB"]))]
     df["Base"] = compute_base(df)
