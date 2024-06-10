@@ -8,6 +8,7 @@ def create_tip_entries(name, matches, data):
     n_cols = len(matches)
     entries = []
     factor_budget = manage_factor_budget(n_cols, name, matches, data)
+    fill_default_scores(n_cols, name, matches, data)
     for i, col in enumerate(st.columns(4)):
         with col:
             if i < n_cols:
@@ -27,14 +28,25 @@ def create_tip_entries(name, matches, data):
     return entries
 
 
+def fill_default_scores(n_cols, name, matches, data):
+    factor_budget = 0
+    for i in range(n_cols):
+        dt, name_a, name_b, t = matches[i]
+        for team in ('A', 'B'):
+            if f"team_{team}_{i}" not in ss:
+                if (name, name_a, name_b) in data.index:
+                    ss[f"team_{team}_{i}"] = data.loc[(name, name_a, name_b), :]["ScoreA"].astype(int)
+                else:
+                    ss[f"team_{team}_{i}"] = 0
+    return factor_budget
+
+
 def manage_factor_budget(n_cols, name, matches, data):
     factor_budget = 0
     for i in range(n_cols):
-        if f"factor_{i}" not in ss:
-            ss[f"factor_{i}"] = 1
         dt, name_a, name_b, t = matches[i]
         factor_budget += ss["Types"][t]["MaxFactor"]
-        if pd.Timestamp(dt) < get_now():
+        if f"factor_{i}" not in ss:
             if (name, name_a, name_b) in data.index:
                 ss[f"factor_{i}"] = data.loc[(name, name_a, name_b), :].Factor.astype(int)
             else:
@@ -47,9 +59,9 @@ def create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget):
         st.write(pd.to_datetime(pd.Timestamp(dt)).strftime("%H:%M"))
         cl, cr = st.columns(2)
         with cl:
-            team_a_score = st.number_input(name_a + " " + country_name_to_flag(name_a), step=1, key=f"team_a_{i}")
+            team_a_score = st.number_input(name_a + " " + country_name_to_flag(name_a), step=1, key=f"team_A_{i}")
         with cr:
-            team_b_score = st.number_input(name_b + " " + country_name_to_flag(name_b), step=1, key=f"team_b_{i}")
+            team_b_score = st.number_input(name_b + " " + country_name_to_flag(name_b), step=1, key=f"team_B_{i}")
         budget = factor_budget - sum([ss[f"factor_{j}"] for j in range(n_cols) if i != j])
         if budget == 1:
             ss[f"factor_{i}"] = 1
@@ -58,6 +70,13 @@ def create_tip_entry(i, name_a, name_b, dt, n_cols, factor_budget):
         else:
             factor = st.slider("Factor", 1, budget, key=f"factor_{i}")
     return factor, team_a_score, team_b_score
+
+
+def delete_defaults():
+    for i in range(4):
+        for k in (f"factor_{i}", f"team_A_{i}", f"team_B_{i}"):
+            if k in ss:
+                del ss[k]
 
 
 def make_entries():
@@ -87,7 +106,7 @@ def make_entries():
     if ss["login"]:
         cols = st.columns(4)
         with cols[0]:
-            date_str = st.date_input("Date of Event").strftime('%d-%b')
+            date_str = st.date_input("Date of Event", on_change=delete_defaults).strftime('%d-%b')
 
         match_indices = schedule.Datetime.dt.date.apply(lambda s: s.strftime('%d-%b')) == date_str
         matches = list(zip(
