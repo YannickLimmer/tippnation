@@ -7,7 +7,7 @@ from admin import modify_schedule
 from display_entries import display_entries
 from display_points import display_points
 from make_entries import make_entries
-from util import ss, DEV_FLAG, ROOT
+from util import ss, DEV_FLAG, ROOT, get_now
 
 
 def main():
@@ -33,6 +33,7 @@ def main():
             with cols[1]:
                 st.time_input("Developer: Time", key="dev_time")
 
+    st.write("Tab started at", get_now())
     tabs = st.tabs(["Enter Scores", "View Entries", "Heatmaps", "Points and Ranking", "Admin"])
     with tabs[0]:
         make_entries()
