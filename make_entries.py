@@ -104,6 +104,7 @@ def make_entries():
 
     entries = []
     if ss["login"]:
+        st.write(f"""Time now: {get_now().strftime("%H:%m")}""")
         cols = st.columns(4)
         with cols[0]:
             date_str = st.date_input("Date of Event", on_change=delete_defaults).strftime('%d-%b')

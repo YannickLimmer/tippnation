@@ -33,7 +33,7 @@ def main():
             with cols[1]:
                 st.time_input("Developer: Time", key="dev_time")
 
-    st.write("Tab started at", get_now())
+    # st.markdown(f"""<div style="text-align: right;"> Time now: {get_now().strftime("%H:%m")} </div> """, unsafe_allow_html=True)
     tabs = st.tabs(["Enter Scores", "View Entries", "Heatmaps", "Points and Ranking", "Admin"])
     with tabs[0]:
         make_entries()
