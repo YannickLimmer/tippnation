@@ -9,7 +9,7 @@ ss = st.session_state
 COLUMNS = ["Name", f"TeamA", f"TeamB", f"ScoreA", "ScoreB", f"Factor"]
 DTYPES = {"Name": str, f"TeamA": str, f"TeamB": str, f"ScoreA": int, "ScoreB": int, f"Factor": int}
 INDEX_COLUMNS = ["Name", f"TeamA", f"TeamB"]
-DEV_FLAG = True
+DEV_FLAG = False
 ROOT = os.getcwd()
 
 
@@ -30,7 +30,7 @@ def get_now():
     if DEV_FLAG:
         return datetime.combine(ss["dev_date"], ss["dev_time"])
 
-    return datetime.now(timezone("Europe/Paris"))
+    return datetime.now(timezone("Europe/Berlin")).replace(tzinfo=None)
 
 
 FLAG_DICT = {
