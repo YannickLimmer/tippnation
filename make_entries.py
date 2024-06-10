@@ -50,7 +50,7 @@ def manage_factor_budget(n_cols, name, matches, data):
             if (name, name_a, name_b) in data.index:
                 ss[f"factor_{i}"] = data.loc[(name, name_a, name_b), :].Factor.astype(int)
             else:
-                ss[f"factor_{i}"] = ss["Types"][t]["MaxFactor"]
+                ss[f"factor_{i}"] = 1 # ss["Types"][t]["MaxFactor"]
     return factor_budget
 
 
