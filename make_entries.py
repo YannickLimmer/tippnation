@@ -35,7 +35,7 @@ def fill_default_scores(n_cols, name, matches, data):
         for team in ('A', 'B'):
             if f"team_{team}_{i}" not in ss:
                 if (name, name_a, name_b) in data.index:
-                    ss[f"team_{team}_{i}"] = data.loc[(name, name_a, name_b), :]["ScoreA"].astype(int)
+                    ss[f"team_{team}_{i}"] = data.loc[(name, name_a, name_b), :][f"Score{team}"].astype(int)
                 else:
                     ss[f"team_{team}_{i}"] = 0
     return factor_budget
