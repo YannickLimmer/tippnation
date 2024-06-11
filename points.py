@@ -50,6 +50,7 @@ def compute_base(df):
                            (df["ResultA"] < df["ResultB"]) & (df["ScoreA"] < df["ScoreB"])
                    )
            ) * 2
+    base += ((np.abs(df["ResultA"] - df["ScoreA"]) + np.abs(df.ResultB - df.ScoreB)) <= 1) * 1
     base += ((df["ResultA"] != df["ResultB"]) & (df.ScoreDiff == df.ResultDiff)) * 1
     base += ((df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"])) * 2
     base += ((df["ResultA"] == df["ResultB"]) & (df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"])) * 1
