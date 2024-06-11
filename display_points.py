@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
 import streamlit as st
-import seaborn as sns
 
-from util import ROOT
+from util import ROOT, SNS_COLORS
 
 
 def display_points():
@@ -44,7 +43,7 @@ def display_points():
     standings = df_raw[["Name", "FBase", "Exotic", "Fav", "Final", ]]
     standings = standings.rename({"FBase": "Base", "Exotic": "Exotic Bonus", "Fav": "Favorite Bonus"}, axis=1)
     st.dataframe(standings.groupby("Name").sum().sort_values("Final", ascending=False).style.applymap(
-        lambda x: f"background-color: {sns.color_palette('pastel').as_hex()[0]}", subset="Final")
+        lambda x: f"background-color: {SNS_COLORS[0]}", subset="Final")
     )
 
     st.markdown("### Point Composition")
