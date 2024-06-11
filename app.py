@@ -34,14 +34,12 @@ def main():
             with cols[1]:
                 st.time_input("Developer: Time", key="dev_time")
 
-    # st.markdown(f"""<div style="text-align: right;"> Time now: {get_now().strftime("%H:%m")} </div> """, unsafe_allow_html=True)
-    tabs = st.tabs(["Enter Scores", "View Entries", "Heatmaps", "Points and Ranking", "Admin"])
+    tabs = st.tabs(["Enter Scores", "View Entries", "Heatmaps (new)", "Points and Ranking", "Admin"])
     with tabs[0]:
         make_entries()
     with tabs[1]:
         display_entries()
     with tabs[2]:
-        st.warning("Coming soon!")
         heat_maps()
     with tabs[3]:
         display_points()
