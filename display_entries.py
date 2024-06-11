@@ -5,6 +5,9 @@ from util import ss, load_data, INDEX_COLUMNS, get_now, country_name_to_flag
 
 
 def display_entries():
+    st.markdown("### Favorites")
+    st.dataframe(pd.DataFrame([{k: v["Favorite"] for k, v in ss["user_info"].items()}]), hide_index=True)
+    st.markdown("### Entries")
     schedule = ss["schedule"]
     unique_dates = [s.strftime('%d-%b') for s in ss["schedule"].Datetime.dt.date.unique()]
     dates = st.multiselect("Choose dates to display", unique_dates)
