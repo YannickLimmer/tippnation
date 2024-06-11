@@ -42,7 +42,10 @@ def display_points():
     st.markdown("### Standings")
     standings = df_raw[["Name", "FBase", "Exotic", "Fav", "Final", ]]
     standings = standings.rename({"FBase": "Base", "Exotic": "Exotic Bonus", "Fav": "Favorite Bonus"}, axis=1)
-    st.dataframe(standings.groupby("Name").sum().sort_values("Final", ascending=False).style.applymap(
+    standings = standings.groupby("Name").sum().sort_values("Final", ascending=False)
+    standings = standings.reset_index()
+    standings.index += 1
+    st.dataframe(standings.style.applymap(
         lambda x: f"background-color: {SNS_COLORS[0]}", subset="Final")
     )
 
