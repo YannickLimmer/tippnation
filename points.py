@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -15,10 +16,12 @@ def compute_points(schedule, types):
     ]
     df = pd.concat(dfs, axis=0)
     st.dataframe(df)
-    df["Favorite"] = df["Name"].apply(lambda k: ss["user_info"][k].get("Favorite"))
-    df = df[~(pd.isna(df["ScoreA"]) | pd.isna(df["ScoreB"]) | pd.isna(df["ResultA"]) | pd.isna(df["ResultB"]))]
+    df["Favorite"] = df.Name.apply(lambda k: ss["user_info"][k].get("Favorite"))
+    df = df[~(pd.isna(df.ScoreA) | pd.isna(df.ScoreB) | pd.isna(df.ResultA) | pd.isna(df.ResultB))]
+    df["ScoreDiff"] = df.ScoreA - df.ScoreB
+    df["ResultDiff"] = df.ResultA - df.ResultB
     df["Base"] = compute_base(df)
-    df["FBase"] = df["Base"] * df["Factor"]
+    df["FBase"] = df.Base * df.Factor
     df['Exotic'] = compute_exotic(df, types)
     df['Fav'] = compute_fav(df, types)
     df['Final'] = df.FBase + df.Exotic + df.Fav
@@ -35,21 +38,20 @@ def compute_base(df):
                    ) | (
                            (df["ResultA"] < df["ResultB"]) & (df["ScoreA"] < df["ScoreB"])
                    )
-           ).astype(int) * 2
-    base += (
-                    (df["ResultA"] != df["ResultB"]) & (df["ScoreA"] - df["ScoreB"] == df["ResultA"] - df["ResultB"])
-            ).astype(int) * 1
-    base += ((df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"])).astype(int) * 2
-    base += (
-                    (df["ResultA"] == df["ResultB"]) & (df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"])
-            ).astype(int) * 1
+           ) * 2
+    base += (df["ResultA"] != df["ResultB"]) & (df.ScoreDiff == df.ResultDiff) * 1
+    base += (df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"]) * 2
+    base += (df["ResultA"] == df["ResultB"]) & (df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"]) * 1
     return base
 
 
 def compute_exotic(df, types):
-    by_match = df.groupby(['TeamA', 'TeamB', 'Datetime'])['Base']
-    is_unique_max = by_match.transform(lambda x: x[x == x.max()].count() == 1)
-    return ((df['Base'] == by_match.transform('max')) & is_unique_max) * df["Type"].apply(lambda s: types[s]["Exotic"])
+    by_match = df.groupby(['TeamA', 'TeamB', 'Datetime'])
+    df = df.set_index(['TeamA', 'TeamB', 'Datetime'])
+    df["AvScoreDiff"] = by_match.ScoreA.mean() - by_match.ScoreB.mean()
+    df = df.reset_index()
+    df["Exotic"] = np.maximum(np.abs(df.AvScoreDiff - df.ResultDiff) - np.abs(df.ResultDiff - df.ScoreDiff), 0).astype(int)
+    return df["Exotic"]
 
 
 def compute_fav(df, types):
