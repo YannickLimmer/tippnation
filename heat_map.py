@@ -56,7 +56,7 @@ def heat_maps():
         st.write(f"Points for {p1} depending on outcome:" if p2 is None else
                  f"Points {p1} gets\n more than {p2} depending on outcome:")
         fig = px.imshow(final_points, text_auto=True, x=np.arange(0, 6), y=np.arange(0, 6), aspect="auto",
-                        labels=dict(x=f"Goals of {team_a}", y=f"Goals of {team_b}", color="Points"))
+                        labels=dict(x=f"Goals of {team_b}", y=f"Goals of {team_a}", color="Points"))
         fig.update_xaxes(side="top")
         st.plotly_chart(fig, theme="streamlit")
 
