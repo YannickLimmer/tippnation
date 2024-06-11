@@ -6,6 +6,7 @@ import pandas as pd
 from admin import modify_schedule
 from display_entries import display_entries
 from display_points import display_points
+from heat_map import heat_maps
 from make_entries import make_entries
 from util import ss, DEV_FLAG, ROOT, get_now
 
@@ -41,6 +42,7 @@ def main():
         display_entries()
     with tabs[2]:
         st.warning("Coming soon!")
+        heat_maps()
     with tabs[3]:
         display_points()
     with tabs[-1]:

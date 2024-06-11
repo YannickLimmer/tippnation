@@ -1,5 +1,5 @@
 Index,Datetime,Type,TeamA,TeamB,ResultA,ResultB
-0,2024-06-11 12:00:00,Group,Great Britain (M),Spain (M),1.0,1.0
+0,2024-06-11 12:00:00,Group,Great Britain (M),Spain (M),,
 1,2024-06-11 14:15:00,Group,Great Britain (W),China (W),2.0,1.0
 2,2024-06-11 16:30:00,Group,Germany (M),Australia (M),2.0,4.0
 3,2024-06-11 18:45:00,Group,Australia (W),Germany (W),,

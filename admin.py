@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import streamlit as st
 
-from points import compute_points
+from points import compute_and_save_points
 from util import ss, ROOT, get_now, load_data, save_data
 from streamlit import logger
 
@@ -20,7 +20,8 @@ def simulate_outcome():
     return x, y
 
 
-def fill_missing(schedule, types):
+def fill_missing(schedule):
+    types = ss["Types"]
     for i, row in schedule[(schedule.Datetime < get_now()).values].iterrows():
         df = load_data(row["Datetime"].strftime('%d-%b'))
         for name in ss["user_info"].keys():
@@ -44,9 +45,9 @@ def modify_schedule():
         if pwd == st.secrets["Admin"]["Password"]:
             schedule.to_csv(ROOT + "/data/Schedule.csv")
             st.success("Changes have been saved successfully!")
-            fill_missing(schedule, ss["Types"])
+            fill_missing(schedule)
             st.success("Missing bets have been inserted!")
-            compute_points(schedule, ss["Types"])
+            compute_and_save_points(schedule)
             st.success("Computation of points completed!")
         else:
             st.warning("Password is incorrect.")

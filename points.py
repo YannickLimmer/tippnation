@@ -5,17 +5,16 @@ import streamlit as st
 from util import ss, load_data, INDEX_COLUMNS, ROOT, get_now
 
 
-def compute_points(schedule, types):
-    dates = [s.strftime('%d-%b') for s in ss["schedule"].Datetime.dt.date.unique()]
-    dfs = [
-        pd.merge(
-            load_data(d).reset_index(),
-            schedule[schedule.Datetime.dt.date.apply(lambda s: s.strftime('%d-%b')) == d],
-            on=["TeamA", "TeamB"],
-        ) for d in dates
-    ]
-    df = pd.concat(dfs, axis=0)
+def compute_and_save_points(schedule):
+    df = collect_complete_match_data(schedule)
     st.dataframe(df)
+    df = compute_points(df)
+    st.dataframe(df)
+    df.to_csv(ROOT + "/data/Points.csv", index=False)
+
+
+def compute_points(df):
+    types = ss["Types"]
     df["Favorite"] = df.Name.apply(lambda k: ss["user_info"][k].get("Favorite"))
     df = df[~(pd.isna(df.ScoreA) | pd.isna(df.ScoreB) | pd.isna(df.ResultA) | pd.isna(df.ResultB))]
     df["ScoreDiff"] = df.ScoreA - df.ScoreB
@@ -25,8 +24,20 @@ def compute_points(schedule, types):
     df['Exotic'] = compute_exotic(df, types)
     df['Fav'] = compute_fav(df, types)
     df['Final'] = df.FBase + df.Exotic + df.Fav
-    st.dataframe(df)
-    df.to_csv(ROOT + "/data/Points.csv", index=False)
+    return df
+
+
+def collect_complete_match_data(schedule):
+    dates = [s.strftime('%d-%b') for s in ss["schedule"].Datetime.dt.date.unique()]
+    dfs = [
+        pd.merge(
+            load_data(d).reset_index(),
+            schedule[schedule.Datetime.dt.date.apply(lambda s: s.strftime('%d-%b')) == d],
+            on=["TeamA", "TeamB"],
+        ) for d in dates
+    ]
+    df = pd.concat(dfs, axis=0)
+    return df
 
 
 def compute_base(df):
@@ -39,9 +50,9 @@ def compute_base(df):
                            (df["ResultA"] < df["ResultB"]) & (df["ScoreA"] < df["ScoreB"])
                    )
            ) * 2
-    base += (df["ResultA"] != df["ResultB"]) & (df.ScoreDiff == df.ResultDiff) * 1
-    base += (df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"]) * 2
-    base += (df["ResultA"] == df["ResultB"]) & (df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"]) * 1
+    base += ((df["ResultA"] != df["ResultB"]) & (df.ScoreDiff == df.ResultDiff)) * 1
+    base += ((df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"])) * 2
+    base += ((df["ResultA"] == df["ResultB"]) & (df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"])) * 1
     return base
 
 
