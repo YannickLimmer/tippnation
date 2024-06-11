@@ -24,15 +24,8 @@ def heat_maps():
         p1 = st.selectbox("Choose Player", options=list(match_data.Name), index=None)
         if p1 is None:
             return
-        st.write(f"Player's bet: \n {team_a} {match_data[match_data.Name == p1]['ScoreA'].item()}"
-                 f" : {match_data[match_data.Name == p1]['ScoreB'].item()} {team_b}"
-                 f" x {match_data[match_data.Name == p1]['Factor'].item()}")
     with dcols[3]:
         p2 = st.selectbox("Choose Opponent", options=[None] + [v for v in list(match_data.Name) if v != p1])
-        if p2:
-            st.write(f"Player's bet: \n {team_a} {match_data[match_data.Name == p2]['ScoreA'].item()}"
-                     f" : {match_data[match_data.Name == p2]['ScoreB'].item()} {team_b}"
-                     f" x {match_data[match_data.Name == p2]['Factor'].item()}")
 
     def get_final_points(result_a, result_b):
         match_data.ResultA = result_a
@@ -53,8 +46,17 @@ def heat_maps():
     # Plot the heatmap
     _, mcol, _ = st.columns(3)
     with mcol:
+        st.markdown(f"{p1}'s bet: \n {team_a} **{match_data[match_data.Name == p1]['ScoreA'].item()}"
+                 f" : {match_data[match_data.Name == p1]['ScoreB'].item()}** {team_b}"
+                 f" **x {match_data[match_data.Name == p1]['Factor'].item()}**")
+        if p2:
+            st.markdown(f"{p2}'s bet: \n {team_a} **{match_data[match_data.Name == p2]['ScoreA'].item()}"
+                     f" : {match_data[match_data.Name == p2]['ScoreB'].item()}** {team_b}"
+                     f" **x {match_data[match_data.Name == p2]['Factor'].item()}**")
+        st.write(f"Points for {p1} depending on outcome:" if p2 is None else
+                 f"Points {p1} gets\n more than {p2} depending on outcome:")
         fig = px.imshow(final_points, text_auto=True, x=np.arange(0, 6), y=np.arange(0, 6), aspect="auto",
-                        labels=dict(x=team_a, y=team_b, color="Points"))
+                        labels=dict(x=f"Goals of {team_a}", y=f"Goals of {team_b}", color="Points"))
         fig.update_xaxes(side="top")
         st.plotly_chart(fig, theme="streamlit")
 
