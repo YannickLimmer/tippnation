@@ -57,13 +57,16 @@ def compute_base(df):
 
 
 def compute_exotic(df, types):
+    w = df["Type"].apply(lambda s: types[s]["Exotic"])
     by_match = df.groupby(['TeamA', 'TeamB', 'Datetime'])
     df = df.reset_index()
     df = df.set_index(['TeamA', 'TeamB', 'Datetime'])
     df["AvScoreDiff"] = by_match.ScoreA.mean() - by_match.ScoreB.mean()
     df = df.reset_index()
     df = df.set_index("index")
-    df["Exotic"] = np.maximum(np.abs(df.AvScoreDiff - df.ResultDiff) - np.abs(df.ResultDiff - df.ScoreDiff), 0).astype(int)
+    df["Exotic"] = (
+            w * np.maximum(np.abs(df.AvScoreDiff - df.ResultDiff) - np.abs(df.ResultDiff - df.ScoreDiff), 0)
+    ).astype(int)
     return df["Exotic"].astype(int)
 
 
