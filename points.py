@@ -64,7 +64,7 @@ def compute_exotic(df, types):
     df = df.reset_index()
     df = df.set_index("index")
     df["Exotic"] = np.maximum(np.abs(df.AvScoreDiff - df.ResultDiff) - np.abs(df.ResultDiff - df.ScoreDiff), 0).astype(int)
-    return df["Exotic"]
+    return df["Exotic"].astype(int)
 
 
 def compute_fav(df, types):
