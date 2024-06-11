@@ -19,9 +19,9 @@ def compute_points(schedule, types):
     df = df[~(pd.isna(df["ScoreA"]) | pd.isna(df["ScoreB"]) | pd.isna(df["ResultA"]) | pd.isna(df["ResultB"]))]
     df["Base"] = compute_base(df)
     df["FBase"] = df["Base"] * df["Factor"]
-    df['Best'] = compute_best(df, types)
+    df['Exotic'] = compute_exotic(df, types)
     df['Fav'] = compute_fav(df, types)
-    df['Final'] = df.FBase + df.Best + df.Fav
+    df['Final'] = df.FBase + df.Exotic + df.Fav
     st.dataframe(df)
     df.to_csv(ROOT + "/data/Points.csv", index=False)
 
@@ -46,10 +46,10 @@ def compute_base(df):
     return base
 
 
-def compute_best(df, types):
+def compute_exotic(df, types):
     by_match = df.groupby(['TeamA', 'TeamB', 'Datetime'])['Base']
     is_unique_max = by_match.transform(lambda x: x[x == x.max()].count() == 1)
-    return ((df['Base'] == by_match.transform('max')) & is_unique_max) * df["Type"].apply(lambda s: types[s]["Best"])
+    return ((df['Base'] == by_match.transform('max')) & is_unique_max) * df["Type"].apply(lambda s: types[s]["Exotic"])
 
 
 def compute_fav(df, types):

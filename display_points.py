@@ -11,7 +11,7 @@ def display_points():
         return
     df = df.rename({"TeamA": "Team A", "TeamB": "Team B", "ResultA": "Result A", "ResultB": "Result B"}, axis=1)
     df = df.set_index(["Datetime", "Team A", "Team B", "Result A", "Result B", "Name"])
-    df = df.drop(["Factor", "Type", "Favorite", "Base", "FBase", "Best", "Fav", "ScoreA", "ScoreB"], axis=1)
+    df = df.drop(["Factor", "Type", "Favorite", "Base", "FBase", "Exotic", "Fav", "ScoreA", "ScoreB"], axis=1)
     df = df.unstack('Name')
     max_points = int(np.ceil(df.fillna(0).values.max()))
     cols = df.columns.values
