@@ -5,7 +5,6 @@ import streamlit as st
 
 from points import compute_and_save_points
 from util import ss, ROOT, get_now, load_data, save_data
-from streamlit import logger
 
 # Parameters
 LAMBDA_A = 1.2
