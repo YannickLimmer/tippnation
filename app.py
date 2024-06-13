@@ -17,7 +17,11 @@ def main():
 
     st.set_page_config(layout="wide")
 
-    ss["schedule"] = pd.read_csv(ROOT + "/data/Schedule.csv", index_col="Index")
+    try:
+        ss["schedule"] = pd.read_csv(ROOT + "/data/Schedule.csv", index_col="Index")
+    except FileNotFoundError:
+        ss["schedule"] = pd.read_csv(ROOT + "/data/BaseSchedule.csv", index_col="Index")
+
     ss["schedule"]["Datetime"] = pd.to_datetime(ss["schedule"]["Datetime"])
 
     with open(ROOT + "/data/Players.json", "r") as fp:

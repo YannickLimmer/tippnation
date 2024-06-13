@@ -21,7 +21,7 @@ def compute_points(df):
     df["ResultDiff"] = df.ResultA - df.ResultB
     df["ScoreDist"] = np.abs(df.ScoreA - df.ResultA) + np.abs(df.ScoreB - df.ResultB)
     df["Base"] = compute_base(df)
-    df["FBase"] = df.Base * df.Factor
+    df["FBase"] = df.Base * df.Factor + df["Type"].apply(lambda s: types[s]["MaxFactor"])
     df['Exotic'] = compute_exotic(df, types)
     df['Fav'] = compute_fav(df, types)
     df['Final'] = df.FBase + df.Exotic + df.Fav
@@ -37,7 +37,7 @@ def collect_complete_match_data(schedule):
             on=["TeamA", "TeamB"],
         ) for d in dates
     ]
-    df = pd.concat(dfs, axis=0)
+    df = pd.concat(dfs, axis=0).reset_index(drop=True)
     return df
 
 
@@ -67,10 +67,11 @@ def compute_exotic(df, types):
     df["AvScoreDist"] = by_match.ScoreDist.mean()
     df = df.reset_index()
     df = df.set_index("index")
+    st.write(df)
     df["Exotic"] = (
             w * (
                 np.maximum(np.abs(df.AvScoreDiff - df.ResultDiff) - np.abs(df.ResultDiff - df.ScoreDiff), 0) +
-                np.maximum(df.AvScoreDist - df.ScoreDist, 0),
+                np.maximum(df.AvScoreDist - df.ScoreDist, 0)
             ) / 2
     ).astype(int)
     return df["Exotic"].astype(int)

@@ -1,6 +1,7 @@
 import logging
 
 import numpy as np
+import pandas as pd
 import streamlit as st
 
 from points import compute_and_save_points
@@ -32,6 +33,14 @@ def fill_missing(schedule):
 
 
 def modify_schedule():
+    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+
+    # Check if a file has been uploaded
+    if uploaded_file is not None:
+        # Read the CSV file into a Pandas DataFrame
+        ss["schedule"] = pd.read_csv(uploaded_file)
+        ss["schedule"]["Datetime"] = pd.to_datetime(ss["schedule"]["Datetime"])
+
     schedule = st.data_editor(ss["schedule"], hide_index=True, num_rows="dynamic", column_config={
                 "Datetime": st.column_config.DateColumn("Date", format="DD-MMM, HH:mm")
     })
