@@ -87,9 +87,9 @@ def make_entries():
 
     cols = st.columns(4)
     with cols[0]:
-        name = st.selectbox("Select your name", options=list(user_info.keys()), index=None, label_visibility='collapsed', placeholder="Select your name")
+        name = st.selectbox("Username", options=list(user_info.keys()), index=None, label_visibility='collapsed', placeholder="Username")
     with cols[1]:
-        pwd = st.text_input("Enter Password", type="password", label_visibility='collapsed', placeholder="Enter Password")
+        pwd = st.text_input("Password", type="password", label_visibility='collapsed', placeholder="Password")
     with cols[2]:
         if "login" not in ss:
             ss["login"] = False
