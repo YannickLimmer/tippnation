@@ -7,6 +7,7 @@ from admin import modify_schedule
 from display_entries import display_entries
 from display_points import display_points
 from heat_map import heat_maps
+from instructions import display_instructions
 from make_entries import make_entries
 from util import ss, DEV_FLAG, ROOT, get_now
 
@@ -38,7 +39,7 @@ def main():
             with cols[1]:
                 st.time_input("Developer: Time", key="dev_time")
 
-    tabs = st.tabs(["Enter Scores", "View Entries", "Heatmaps (new)", "Points and Ranking", "Admin"])
+    tabs = st.tabs(["Enter Scores", "View Entries", "Heatmaps (new)", "Points and Ranking", "Points Computation Explained", "Admin"])
     with tabs[0]:
         make_entries()
     with tabs[1]:
@@ -47,6 +48,8 @@ def main():
         heat_maps()
     with tabs[3]:
         display_points()
+    with tabs[4]:
+        display_instructions()
     with tabs[-1]:
         modify_schedule()
 
