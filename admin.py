@@ -1,4 +1,7 @@
+import io
 import logging
+import os
+import zipfile
 
 import numpy as np
 import pandas as pd
@@ -32,6 +35,28 @@ def fill_missing(schedule):
         save_data(row["Datetime"].strftime('%d-%b'), df)
 
 
+def zip_csv_files(folder_path):
+    # Create a byte stream to hold the zip file in memory
+    zip_buffer = io.BytesIO()
+    st.write(folder_path)
+
+    # Create a zip file
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Iterate over all files in the folder
+        for foldername, subfolders, filenames in os.walk(folder_path):
+            st.write(foldername)
+            for filename in filenames:
+                # Only add CSV files to the zip
+                if filename.endswith('.csv'):
+                    filepath = os.path.join(foldername, filename)
+                    zip_file.write(filepath, os.path.relpath(filepath, folder_path))
+
+    # Seek to the beginning of the byte stream
+    zip_buffer.seek(0)
+    return zip_buffer
+
+
+
 def modify_schedule():
     uploaded_file = st.file_uploader("Upload a schedule", type="csv")
 
@@ -48,8 +73,8 @@ def modify_schedule():
     with cols[0]:
         pwd = st.text_input("Enter Admin Password", type="password")
     with cols[1]:
-        button = st.button("Save and Compute Points")
-    if button:
+        button_bets = st.button("Save and Compute Points")
+    if button_bets:
         if pwd == st.secrets["Admin"]["Password"]:
             schedule.to_csv(ROOT + "/data/Schedule.csv")
             st.success("Changes have been saved successfully!")
@@ -59,3 +84,19 @@ def modify_schedule():
             st.success("Computation of points completed!")
         else:
             st.warning("Password is incorrect.")
+    with cols[2]:
+        if st.button("Request all tips"):
+            try:
+                # Create the zip file
+                zip_buffer = zip_csv_files(ROOT + "/data/tips/")
+
+                # Provide the download button for the zip file
+                st.download_button(
+                    label="Download ZIP",
+                    data=zip_buffer,
+                    file_name="tips.zip",
+                    mime="application/zip"
+                )
+
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
