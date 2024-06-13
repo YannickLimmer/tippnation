@@ -44,6 +44,7 @@ def display_entries():
         df.columns = df.columns.swaplevel(0, 1)
         df = df.sort_index(axis=1, level=0)  # .astype(int)
         df.columns = [' '.join(col).strip() for col in df.columns.values]
+        df = df.reset_index().set_index(["TeamA", "TeamB"])
         st.dataframe(df, column_config={
                 k: st.column_config.ProgressColumn(
                     k,

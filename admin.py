@@ -33,7 +33,7 @@ def fill_missing(schedule):
 
 
 def modify_schedule():
-    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+    uploaded_file = st.file_uploader("Upload a schedule", type="csv")
 
     # Check if a file has been uploaded
     if uploaded_file is not None:

@@ -26,7 +26,7 @@ def display_points():
     df = df[[v for col in cols for v in [col[-1] + " Points", col[-1] + " Sum"]]]
 
     st.markdown("### Points by Match")
-    st.dataframe(df, column_config={
+    st.dataframe(df.reset_index().set_index(["Team A", "Team B"]), column_config={
         "Datetime": st.column_config.DateColumn("Date", format="DD-MMM, HH:mm")
     } | {
         k: st.column_config.ProgressColumn(
