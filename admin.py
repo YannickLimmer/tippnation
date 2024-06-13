@@ -99,5 +99,5 @@ def modify_schedule():
 
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
-        else:
-            st.warning("Password is incorrect.")
+            else:
+                st.warning("Password is incorrect.")
