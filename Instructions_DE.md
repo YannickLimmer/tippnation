@@ -16,12 +16,12 @@ Willkommen bei unserem Tippspiel! Hier ist eine Aufschlüsselung, wie Punkte bas
       $$
       \text{Favorit-Punkte} = 
       \begin{cases} 
-      2  \times \text{Favorit-Faktor} & \text{wenn Favorit gewinnt} \\
-      1  \times \text{Favorit-Faktor} & \text{wenn Favorit unentschieden spielt} \\
-      -1 \times \text{Favorit-Faktor} & \text{wenn Favorit verliert}
+      \text{Favorit-Sieg} & \text{wenn Favorit gewinnt} \\
+      3   & \text{wenn Favorit unentschieden spielt} \\
+      -6  & \text{wenn Favorit verliert}
       \end{cases}
       $$
-      wobei $\text{Favorit-Faktor}$ von der Art des Spiels abhängt (Gruppenphase, Achtelfinale usw.).
+      wobei $\text{Favorit-Sieg}$ von der Art des Spiels abhängt (Gruppenphase, Achtelfinale usw.).
 
 2. **Basispunkte**:
     - **Richtiger Ausgang**: Verdiene 1 Punkt, wenn dein vorhergesagter Ausgang (Sieg, Niederlage oder Unentschieden) mit dem tatsächlichen Ausgang übereinstimmt. Wenn dies nicht der Fall ist, verlierst du einen Punkt.
@@ -61,7 +61,7 @@ Willkommen bei unserem Tippspiel! Hier ist eine Aufschlüsselung, wie Punkte bas
       \text{AvPunkteDiff} = \text{Durchschnitt}(\text{PunkteDiff})
       $$
       $$
-      \text{Exoten Abst} =  [\text{AvPunkteAbst} - \text{PunkteAbst}|]_+   
+      \text{Exoten Abst} =  [\text{AvPunkteAbst} - \text{PunkteAbst}]_+   
       $$
       $$
       \text{Exoten Diff} = [|\text{AvPunkteDiff} - \text{ErgebnisDiff}| - |\text{ErgebnisDiff} - \text{PunkteDiff}|]_+ 
@@ -77,16 +77,16 @@ Willkommen bei unserem Tippspiel! Hier ist eine Aufschlüsselung, wie Punkte bas
 - Noch festzulegen
 
 6. **Aspekte je nach Spieltypen**:
-- **Die Faktoren**: Die Variablen $\text{Favorit-Faktor}$,  $\text{Exotenbonus}$, $\text{FaktorBeitrag}$ ändern sich während des Spiels.
+- **Die Faktoren**: Die Variablen $\text{Favorit-Sieg}$,  $\text{Exotenbonus}$, $\text{FaktorBeitrag}$ ändern sich während des Spiels.
 
-    | Spieltyp    | Favorit-Faktor | Exotenbonus | FaktorBeitrag |
+    | Spieltyp    | Favorit-Sieg | Exotenbonus | FaktorBeitrag |
     |--------------|----------------------|-------------|----------------|
-    | Gruppenphase  | 3                   | 3           | 3              |
-    | Achtelfinale  | 6                   | 6           | 6              |
-    | Viertelfinale| 6                   | 8           | 8              |
-    | Halbfinale   | 8                   | 10          | 10             |
-    | Um Platz drei    | 8                   | 10          | 10             |
-    | Finale        | 10                   | 12          | 12             |
+    | Gruppenphase  | 6                   | 3           | 3              |
+    | Achtelfinale  | 12                   | 6           | 6              |
+    | Viertelfinale| 12                   | 8           | 8              |
+    | Halbfinale   | 16                   | 10          | 10             |
+    | Um Platz drei    | 16                   | 10          | 10             |
+    | Finale        | 20                   | 12          | 12             |
 
 
 Indem du diese Regeln und Formeln verstehst, kannst du besser strategisieren und deine Punkte im Tippspiel maximieren. Viel Glück!

@@ -16,12 +16,12 @@ Welcome to our betting game! Here's a breakdown of how points are calculated bas
       $$
       \text{Favorite Points} = 
       \begin{cases} 
-      2  \times \text{FavoriteFactor} & \text{if Favorite team wins} \\
-      1  \times \text{FavoriteFactor} & \text{if Favorite team draws} \\
-      -1 \times \text{FavoriteFactor} & \text{if Favorite team loses}
+      \text{FavoriteWin} & \text{if Favorite team wins} \\
+      3   & \text{if Favorite team draws} \\
+      -6  & \text{if Favorite team loses}
       \end{cases}
       $$
-      where $\text{FavoriteFactor}$ is the depending on the type of game (group stage, round of 16, etc...).
+      where $\text{FavoriteWin}$ is the depending on the type of game (group stage, round of 16, etc...).
 
 2. **Base Points**:
     - **Correct Outcome**: Earn 1 points if your predicted outcome (win, loss, or draw) matches the actual outcome. If you fail to do so, you loose one point.
@@ -58,7 +58,7 @@ Welcome to our betting game! Here's a breakdown of how points are calculated bas
       \text{AvScoreDiff} = \text{Average}(\text{ScoreDiff})
       $$
       $$
-      \text{Exotic Dist} =  [\text{AvScoreDist} - \text{ScoreDist}|]_+   
+      \text{Exotic Dist} =  [\text{AvScoreDist} - \text{ScoreDist}]_+   
       $$
       $$
       \text{Exotic Diff} = [|\text{AvScoreDiff} - \text{ResultDiff}| - |\text{ResultDiff} - \text{ScoreDiff}|]_+ 
@@ -74,16 +74,16 @@ Welcome to our betting game! Here's a breakdown of how points are calculated bas
 - TBD
 
 6. **Aspects Depending on Game Types**:
-- **The factors**: The variables $\text{FavoriteFactor}$,  $\text{ExoticFactor}$, $\text{ProvidesFactor}$ change throughout the game.
+- **The factors**: The variables $\text{FavoriteWin}$,  $\text{ExoticFactor}$, $\text{ProvidesFactor}$ change throughout the game.
 
-    | Game Type    | FavoriteFactor | ExoticFactor | ProvidesFactor |
+    | Game Type    | FavoriteWin | ExoticFactor | ProvidesFactor |
     |--------------|----------------|--------------|----------------|
-    | Group Stage  | 3              | 3            | 3              |
-    | Round of 16  | 6              | 6            | 6              |
-    | Quarter Final| 6              | 8            | 8              |
-    | Semi-Final   | 8              | 10           | 10             |
-    | For Third    | 8              | 10           | 10             |
-    | Final        | 10             | 12           | 12             |
+    | Group Stage  | 6              | 3            | 3              |
+    | Round of 16  | 12             | 6            | 6              |
+    | Quarter Final| 12             | 8            | 8              |
+    | Semi-Final   | 16             | 10           | 10             |
+    | For Third    | 16             | 10           | 10             |
+    | Final        | 20             | 12           | 12             |
 
 
 By understanding these rules and formulas, you can strategize better and maximize your points in the betting game. Good luck!
