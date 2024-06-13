@@ -19,6 +19,7 @@ def compute_points(df):
     df = df[~(pd.isna(df.ScoreA) | pd.isna(df.ScoreB) | pd.isna(df.ResultA) | pd.isna(df.ResultB))]
     df["ScoreDiff"] = df.ScoreA - df.ScoreB
     df["ResultDiff"] = df.ResultA - df.ResultB
+    df["ScoreDist"] = np.abs(df.ScoreA - df.ResultA) + np.abs(df.ScoreB - df.ResultB)
     df["Base"] = compute_base(df)
     df["FBase"] = df.Base * df.Factor
     df['Exotic'] = compute_exotic(df, types)
@@ -49,7 +50,7 @@ def compute_base(df):
                    ) | (
                            (df["ResultA"] < df["ResultB"]) & (df["ScoreA"] < df["ScoreB"])
                    )
-           ) * 2
+           ) * 2 - 1
     base += ((np.abs(df["ResultA"] - df["ScoreA"]) + np.abs(df.ResultB - df.ScoreB)) <= 1) * 1
     base += ((df["ResultA"] != df["ResultB"]) & (df.ScoreDiff == df.ResultDiff)) * 1
     base += ((df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"])) * 2
@@ -62,11 +63,15 @@ def compute_exotic(df, types):
     by_match = df.groupby(['TeamA', 'TeamB', 'Datetime'])
     df = df.reset_index()
     df = df.set_index(['TeamA', 'TeamB', 'Datetime'])
-    df["AvScoreDiff"] = by_match.ScoreA.mean() - by_match.ScoreB.mean()
+    df["AvScoreDiff"] = by_match.ScoreDiff.mean()
+    df["AvScoreDist"] = by_match.ScoreDist.mean()
     df = df.reset_index()
     df = df.set_index("index")
     df["Exotic"] = (
-            w * np.maximum(np.abs(df.AvScoreDiff - df.ResultDiff) - np.abs(df.ResultDiff - df.ScoreDiff), 0)
+            w * (
+                np.maximum(np.abs(df.AvScoreDiff - df.ResultDiff) - np.abs(df.ResultDiff - df.ScoreDiff), 0) +
+                np.maximum(df.AvScoreDist - df.ScoreDist, 0),
+            ) / 2
     ).astype(int)
     return df["Exotic"].astype(int)
 
