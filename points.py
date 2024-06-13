@@ -80,9 +80,9 @@ def compute_exotic(df, types):
 def compute_fav(df, types):
     w = df["Type"].apply(lambda s: types[s]["Favorite"])
     return (df["Favorite"] == df["TeamA"]) * (
-        w * (df["ResultA"] > df["ResultB"]) + 2 * (df["ResultA"] == df["ResultB"]) - 4 * (df["ResultA"] < df["ResultB"])
+        w * (df["ResultA"] > df["ResultB"]) + 3 * (df["ResultA"] == df["ResultB"]) - 6 * (df["ResultA"] < df["ResultB"])
     ) + (df["Favorite"] == df["TeamB"]) * (
-        w * (df["ResultA"] < df["ResultB"]) + 2 * (df["ResultA"] == df["ResultB"]) - 4 * (df["ResultA"] > df["ResultB"])
+        w * (df["ResultA"] < df["ResultB"]) + 3 * (df["ResultA"] == df["ResultB"]) - 6 * (df["ResultA"] > df["ResultB"])
     )
 
 

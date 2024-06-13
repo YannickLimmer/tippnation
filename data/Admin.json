@@ -1,34 +1,34 @@
 {
   "Types": {
     "Group": {
+      "Favorite": 6,
       "MaxFactor": 3,
-      "Favorite": 4,
       "Exotic": 3
     },
     "16": {
-      "MaxFactor": 3,
-      "Favorite": 4,
+      "Favorite": 12,
+      "MaxFactor": 6,
       "Exotic": 6
     },
     "8": {
-      "MaxFactor": 3,
-      "Favorite": 4,
-      "Exotic": 6
+      "Favorite": 12,
+      "MaxFactor": 8,
+      "Exotic": 8
     },
     "4": {
-      "MaxFactor": 3,
-      "Favorite": 4,
-      "Exotic": 6
+      "Favorite": 16,
+      "MaxFactor": 10,
+      "Exotic": 10
     },
     "3": {
-      "MaxFactor": 3,
-      "Favorite": 4,
-      "Exotic": 6
+      "Favorite": 16,
+      "MaxFactor": 10,
+      "Exotic": 10
     },
     "Final": {
-      "MaxFactor": 3,
-      "Favorite": 4,
-      "Exotic": 6
+      "Favorite": 20,
+      "MaxFactor": 12,
+      "Exotic": 12
     }
   }
 }
