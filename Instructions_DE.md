@@ -74,7 +74,7 @@ Willkommen bei unserem Tippspiel! Hier ist eine Aufschlüsselung, wie Punkte bas
 
 5. **Kanonenwilli-Punkte**:
 
-- Noch festzulegen
+![Sample Image](data/figs/Bullet_Bill.png)
 
 6. **Aspekte je nach Spieltypen**:
 - **Die Faktoren**: Die Variablen $\text{Favorit-Sieg}$,  $\text{Exotenbonus}$, $\text{FaktorBeitrag}$ ändern sich während des Spiels.

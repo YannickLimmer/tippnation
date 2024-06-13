@@ -71,7 +71,7 @@ Welcome to our betting game! Here's a breakdown of how points are calculated bas
 
 5. **Kanonenwilli Points**:
 
-- TBD
+![Sample Image](data/figs/Bullet_Bill.png)
 
 6. **Aspects Depending on Game Types**:
 - **The factors**: The variables $\text{FavoriteWin}$,  $\text{ExoticFactor}$, $\text{ProvidesFactor}$ change throughout the game.
