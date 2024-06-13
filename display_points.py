@@ -6,8 +6,11 @@ from util import ROOT, SNS_COLORS
 
 
 def display_points():
-    df_raw = pd.read_csv(ROOT + '/data/Points.csv')
-    df_raw["Datetime"] = pd.to_datetime(df_raw["Datetime"])
+    try:
+        df_raw = pd.read_csv(ROOT + '/data/Points.csv')
+        df_raw["Datetime"] = pd.to_datetime(df_raw["Datetime"])
+    except FileNotFoundError:
+        return
     if df_raw.empty:
         return
     df = df_raw.rename({"TeamA": "Team A", "TeamB": "Team B", "ResultA": "Result A", "ResultB": "Result B"}, axis=1)
