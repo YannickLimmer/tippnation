@@ -90,14 +90,15 @@ def make_entries():
     schedule = ss["schedule"]
     user_info = ss["user_info"]
 
+    if "login" not in ss:
+        ss["login"] = False
+
     cols = st.columns(4)
     with cols[0]:
-        name = st.selectbox("Username", options=list(user_info.keys()), index=None, label_visibility='collapsed', placeholder="Username", on_change=logout())
+        name = st.selectbox("Username", options=list(user_info.keys()), index=None, label_visibility='collapsed', placeholder="Username", on_change=logout)
     with cols[1]:
         pwd = st.text_input("Password", type="password", label_visibility='collapsed', placeholder="Password")
     with cols[2]:
-        if "login" not in ss:
-            ss["login"] = False
         if st.button("Login"):
             if pwd == st.secrets[name]["Password"]:
                 ss["login"] = True
