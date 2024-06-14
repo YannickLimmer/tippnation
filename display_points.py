@@ -48,7 +48,7 @@ def display_points():
     standings = standings.groupby("Name").sum().sort_values("Final", ascending=False).reset_index()
     standings["Rank"] = standings["Final"].rank(method='min', ascending=False).astype(int)
     standings = standings[["Rank", "Base", "Exotic Bonus", "Favorite Bonus", "Kanonenwilli", "Final"]]
-    st.dataframe(standings.style.applymap(lambda x: f"background-color: {SNS_COLORS[0]}", subset="Final"), hide_index=True)
+    st.dataframe(standings.style.applymap(lambda x: f"background-color: {SNS_COLORS[0]}", subset="Final"), hide_index=False)
 
     st.markdown("### Point Composition")
     dcols = st.columns(4)
