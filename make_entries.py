@@ -80,6 +80,10 @@ def delete_defaults():
                 del ss[k]
 
 
+def logout():
+    ss["login"] = False
+
+
 def make_entries():
     # st.title("Score Entries")
 
@@ -88,7 +92,7 @@ def make_entries():
 
     cols = st.columns(4)
     with cols[0]:
-        name = st.selectbox("Username", options=list(user_info.keys()), index=None, label_visibility='collapsed', placeholder="Username")
+        name = st.selectbox("Username", options=list(user_info.keys()), index=None, label_visibility='collapsed', placeholder="Username", on_change=logout())
     with cols[1]:
         pwd = st.text_input("Password", type="password", label_visibility='collapsed', placeholder="Password")
     with cols[2]:
