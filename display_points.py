@@ -54,10 +54,10 @@ def display_points():
     dcols = st.columns(4)
     with dcols[0]:
         date = st.date_input("Choose Date")
-    detailed = df_raw[df_raw["Datetime"].dt.date == date][["Name", "TeamA", "TeamB", "FBase", "Exotic", "Fav", "KW"]]
+    detailed = df_raw[df_raw["Datetime"].dt.date == date][["Name", "Datetime", "TeamA", "TeamB", "FBase", "Exotic", "Fav", "KW"]]
     detailed = detailed.rename({"FBase": "Base", "Exotic": "Exotic Bonus", "Fav": "Favorite Bonus", "KW": "Kanonenwilli"}, axis=1)
     dcols = st.columns(4)
-    for dcol, ((n1, n2), g) in zip(dcols, detailed.groupby(["TeamA", "TeamB"])):
+    for dcol, ((d, n1, n2), g) in zip(dcols, detailed.groupby(["Datetime", "TeamA", "TeamB"])):
         with dcol:
             st.write(f"{n1} vs {n2}")
-            st.bar_chart(g.drop(["TeamA", "TeamB"], axis=1).groupby("Name").sum())
+            st.bar_chart(g.drop(["Datetime", "TeamA", "TeamB"], axis=1).groupby("Name").sum())
