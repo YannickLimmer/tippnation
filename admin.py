@@ -1,5 +1,4 @@
 import io
-import logging
 import os
 import zipfile
 
@@ -8,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 from points import compute_and_save_points
-from util import ss, ROOT, get_now, load_data, save_data
+from util import ss, ROOT, get_now, load_data, save_data, logging
 
 # Parameters
 LAMBDA_A = 1.2
