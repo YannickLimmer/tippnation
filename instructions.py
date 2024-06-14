@@ -21,12 +21,24 @@ def display_instructions():
     image_tag = f"![Bullet Bill](data:image/png;base64,{base64_image})"
     image_tag = f'<img src="data:image/png;base64,{base64_image}" alt="Bullet Bill" width="300"/>'
     if language == "Deutsch":
-        st.markdown(
-            read_markdown(ROOT + "/Instructions_DE.md").replace("![Sample Image](data/figs/Bullet_Bill.png)", image_tag),
-            unsafe_allow_html=True,
-        )
+        with st.expander("Tippen Anleitung"):
+            st.markdown(
+                read_markdown(ROOT + "/MANUAL_DE.md"),
+                unsafe_allow_html=True,
+            )
+        with st.expander("Punkte Berechnung"):
+            st.markdown(
+                read_markdown(ROOT + "/Instructions_DE.md").replace("![Sample Image](data/figs/Bullet_Bill.png)", image_tag),
+                unsafe_allow_html=True,
+            )
     else:
-        st.markdown(
-            read_markdown(ROOT + "/Instructions_EN.md").replace("![Sample Image](data/figs/Bullet_Bill.png)", image_tag),
-            unsafe_allow_html=True,
-        )
+        with st.expander("Instructions for Placing Bets"):
+            st.markdown(
+                read_markdown(ROOT + "/MANUAL_EN.md"),
+                unsafe_allow_html=True,
+            )
+        with st.expander("Points Computation"):
+            st.markdown(
+                read_markdown(ROOT + "/Instructions_EN.md").replace("![Sample Image](data/figs/Bullet_Bill.png)", image_tag),
+                unsafe_allow_html=True,
+            )

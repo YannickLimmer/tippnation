@@ -39,7 +39,7 @@ def main():
             with cols[1]:
                 st.time_input("Developer: Time", key="dev_time")
 
-    tabs = st.tabs(["Enter Scores", "View Entries", "Heatmaps (new)", "Points and Ranking", "Points Computation Explained", "Admin"])
+    tabs = st.tabs(["Enter Scores", "View Entries", "Heatmaps (new)", "Points and Ranking", "Help", "Admin"])
     with tabs[0]:
         make_entries()
     with tabs[1]:
