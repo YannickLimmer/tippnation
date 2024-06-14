@@ -95,15 +95,19 @@ def make_entries():
 
     cols = st.columns(4)
     with cols[0]:
-        name = st.selectbox("Username", options=list(user_info.keys()), index=None, label_visibility='collapsed', placeholder="Username", on_change=logout)
+        name = st.text_input("Username", label_visibility='collapsed', placeholder="Username", on_change=logout)
+        # name = st.selectbox("Username", options=, index=None, label_visibility='collapsed', placeholder="Username", on_change=logout)
     with cols[1]:
         pwd = st.text_input("Password", type="password", label_visibility='collapsed', placeholder="Password")
     with cols[2]:
         if st.button("Login"):
-            if pwd == st.secrets[name]["Password"]:
-                ss["login"] = True
+            if name in user_info.keys():
+                if pwd == st.secrets[name]["Password"]:
+                    ss["login"] = True
+                else:
+                    st.warning("Password is incorrect. Are you trying to cheat?")
             else:
-                st.warning("Password is incorrect. Are you trying to cheat?")
+                st.warning("This user is not registered.")
     with cols[3]:
         if st.button("Logout"):
             ss["login"] = False
