@@ -43,21 +43,19 @@ def display_points():
     st.line_chart(df.reset_index()[[k for k in df.columns if "Sum" in k]].rename({k: k[:-4] for k in df.columns}, axis=1))
 
     st.markdown("### Standings")
-    standings = df_raw[["Name", "FBase", "Exotic", "Fav", "Final", ]]
-    standings = standings.rename({"FBase": "Base", "Exotic": "Exotic Bonus", "Fav": "Favorite Bonus"}, axis=1)
-    standings = standings.groupby("Name").sum().sort_values("Final", ascending=False)
-    standings = standings.reset_index()
-    standings.index += 1
-    st.dataframe(standings.style.applymap(
-        lambda x: f"background-color: {SNS_COLORS[0]}", subset="Final")
-    )
+    standings = df_raw[["Name", "FBase", "Exotic", "Fav", "KW", "Final"]]
+    standings = standings.rename({"FBase": "Base", "Exotic": "Exotic Bonus", "Fav": "Favorite Bonus", "KW": "Kanonenwilli"}, axis=1)
+    standings = standings.groupby("Name").sum().sort_values("Final", ascending=False).reset_index()
+    standings["Rank"] = standings["Final"].rank(method='min', ascending=False).astype(int)
+    standings = standings[["Rank", "Base", "Exotic Bonus", "Favorite Bonus", "Kanonenwilli", "Final"]]
+    st.dataframe(standings.style.applymap(lambda x: f"background-color: {SNS_COLORS[0]}", subset="Final"), hide_index=True)
 
     st.markdown("### Point Composition")
     dcols = st.columns(4)
     with dcols[0]:
         date = st.date_input("Choose Date")
-    detailed = df_raw[df_raw["Datetime"].dt.date == date][["Name", "TeamA", "TeamB", "FBase", "Exotic", "Fav"]]
-    detailed = detailed.rename({"FBase": "Base", "Exotic": "Exotic Bonus", "Fav": "Favorite Bonus"}, axis=1)
+    detailed = df_raw[df_raw["Datetime"].dt.date == date][["Name", "TeamA", "TeamB", "FBase", "Exotic", "Fav", "KW"]]
+    detailed = detailed.rename({"FBase": "Base", "Exotic": "Exotic Bonus", "Fav": "Favorite Bonus", "KW": "Kanonenwilli"}, axis=1)
     dcols = st.columns(4)
     for dcol, ((n1, n2), g) in zip(dcols, detailed.groupby(["TeamA", "TeamB"])):
         with dcol:

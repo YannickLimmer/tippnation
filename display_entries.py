@@ -22,16 +22,15 @@ def display_entries():
                 on=["TeamA", "TeamB"],
             ).set_index(["Datetime", "Type", "ResultA", "ResultB"] + INDEX_COLUMNS) for d in dates
         ]
-        df = pd.concat(dfs, axis=0)
+        df = pd.concat(dfs, axis=0)[["ScoreA", "ScoreB", "Factor"]]
         if df.empty:
             return
         max_factor = int(np.ceil(df["Factor"].values.max()))
 
-        if False:
-            df = df.reset_index()
-            df["TeamA"] = df["TeamA"].apply(country_name_to_flag)
-            df["TeamB"] = df["TeamB"].apply(country_name_to_flag)
-            df = df.set_index(["Datetime", "Type", "ResultA", "ResultB"] + INDEX_COLUMNS)
+        # df = df.reset_index()
+        # df["TeamA"] = df["TeamA"].apply(country_name_to_flag)
+        # df["TeamB"] = df["TeamB"].apply(country_name_to_flag)
+        # df = df.set_index(["Datetime", "Type", "ResultA", "ResultB"] + INDEX_COLUMNS)
 
         df = df.loc[(df.reset_index().Datetime < get_now()).values, :]
         df = df.loc[df.reset_index().Name.isin(names).values, :]

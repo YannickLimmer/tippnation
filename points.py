@@ -4,13 +4,78 @@ import streamlit as st
 
 from util import ss, load_data, INDEX_COLUMNS, ROOT, get_now
 
+TO_RANK = [8, 7, 6, 5, 4]
+PROBABILITIES = [0.1, 0.2, 0.4, 0.2, 0.1]
+
+
+def gets_rocket(last):
+    if last == 1:
+        return np.random.binomial(1, 2/3)
+    if last == 2:
+        return np.random.binomial(1, 1/2)
+    if last == 3:
+        return np.random.binomial(1, 1/3)
+    if last == 4:
+        return np.random.binomial(1, 1/5)
+    return 0
+
+
+def gets_rocket_to(last):
+    if gets_rocket(last):
+        return np.random.choice(TO_RANK, p=PROBABILITIES)
+    else:
+        return None
+
 
 def compute_and_save_points(schedule):
-    df = collect_complete_match_data(schedule)
+    df = collect_complete_match_data(schedule).sort_values("Datetime")
     st.dataframe(df)
+    df = df.set_index(["Datetime", "TeamA", "TeamB"])
+    willi_flag = ~pd.isna(df["Kanonenwilli"])
+    df_with_willi = df[willi_flag]
+    df_without_willi = df[~willi_flag]
+    while (not df_without_willi.empty) and all(~pd.isna(df_with_willi.ResultA) & ~ pd.isna(df_with_willi.ResultB)):
+        # Find next game data
+        grouped_by_game = df_without_willi.groupby(["Datetime", "TeamA", "TeamB"])
+        next_game = grouped_by_game.get_group((list(grouped_by_game.groups)[0]))
+
+        # Compute willi bonus
+        points_with_willi = compute_points(df_with_willi).groupby("Name")[["Final"]].sum()
+        points_with_willi = points_with_willi.sort_values("Final", ascending=False)
+        points_with_willi["Last"] = points_with_willi.rank(method='min', ascending=True)
+        points_with_willi["GetsToRank"] = points_with_willi.Last.apply(gets_rocket_to)
+
+        def calculate_difference(row):
+            if pd.notna(row['GetsToRank']):
+                target_index = int(row['GetsToRank'] - 1)
+                return max(points_with_willi.iloc[target_index]['Final'] - row['Final'], 0)
+            else:
+                return 0
+        points_with_willi["Kanonenwilli"] = points_with_willi.apply(calculate_difference, axis=1)
+
+        # Add to df
+        if points_with_willi.empty:
+            df.loc[next_game.index, "Kanonenwilli"] = 0
+        else:
+            df.loc[next_game.index, "Kanonenwilli"] = points_with_willi.loc[
+                df.loc[next_game.index, "Name"], "Kanonenwilli"
+            ].values
+
+        # Save to tips
+
+        # Update last game
+        willi_flag = ~pd.isna(df["Kanonenwilli"])
+        df_with_willi = df[willi_flag]
+        df_without_willi = df[~willi_flag]
+    st.write(points_with_willi)
+
+    st.write("DEBUG: Points with willi")
+    st.write(df)
+
     df = compute_points(df)
     st.dataframe(df)
-    df.to_csv(ROOT + "/data/Points.csv", index=False)
+    df.to_csv(ROOT + "/data/Points.csv", index=True)
+
 
 
 def compute_points(df):
@@ -24,7 +89,8 @@ def compute_points(df):
     df["FBase"] = df.Base * df.Factor + df["Type"].apply(lambda s: types[s]["MaxFactor"])
     df['Exotic'] = compute_exotic(df, types)
     df['Fav'] = compute_fav(df, types)
-    df['Final'] = df.FBase + df.Exotic + df.Fav
+    df['KW'] = compute_kanonenwilli(df)
+    df['Final'] = df.FBase + df.Exotic + df.Fav + df.KW
     return df
 
 
@@ -60,13 +126,9 @@ def compute_base(df):
 
 def compute_exotic(df, types):
     w = df["Type"].apply(lambda s: types[s]["Exotic"])
-    by_match = df.groupby(['TeamA', 'TeamB', 'Datetime'])
-    df = df.reset_index()
-    df = df.set_index(['TeamA', 'TeamB', 'Datetime'])
+    by_match = df.groupby(['Datetime', 'TeamA', 'TeamB'])
     df["AvScoreDiff"] = by_match.ScoreDiff.mean()
     df["AvScoreDist"] = by_match.ScoreDist.mean()
-    df = df.reset_index()
-    df = df.set_index("index")
     df["Exotic"] = (
             w * (
                 np.maximum(np.abs(df.AvScoreDiff - df.ResultDiff) - np.abs(df.ResultDiff - df.ScoreDiff), 0) +
@@ -78,10 +140,20 @@ def compute_exotic(df, types):
 
 def compute_fav(df, types):
     w = df["Type"].apply(lambda s: types[s]["Favorite"])
-    return (df["Favorite"] == df["TeamA"]) * (
+    return (df["Favorite"] == df.reset_index()["TeamA"].values) * (
         w * (df["ResultA"] > df["ResultB"]) + 3 * (df["ResultA"] == df["ResultB"]) - 6 * (df["ResultA"] < df["ResultB"])
-    ) + (df["Favorite"] == df["TeamB"]) * (
+    ) + (df["Favorite"] == df.reset_index()["TeamB"].values) * (
         w * (df["ResultA"] < df["ResultB"]) + 3 * (df["ResultA"] == df["ResultB"]) - 6 * (df["ResultA"] > df["ResultB"])
     )
+
+
+def compute_kanonenwilli(df):
+    return df["Kanonenwilli"] * ((
+            (df["ResultA"] > df["ResultB"]) & (df["ScoreA"] > df["ScoreB"])
+    ) | (
+            (df["ResultA"] == df["ResultB"]) & (df["ScoreA"] == df["ScoreB"])
+    ) | (
+            (df["ResultA"] < df["ResultB"]) & (df["ScoreA"] < df["ScoreB"])
+    ))
 
 

@@ -54,7 +54,6 @@ def zip_csv_files(folder_path):
     return zip_buffer
 
 
-
 def modify_schedule():
     uploaded_file = st.file_uploader("Upload a schedule", type="csv")
 

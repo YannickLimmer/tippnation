@@ -6,10 +6,10 @@ import streamlit as st
 from pytz import timezone
 
 ss = st.session_state
-COLUMNS = ["Name", f"TeamA", f"TeamB", f"ScoreA", "ScoreB", f"Factor"]
-DTYPES = {"Name": str, f"TeamA": str, f"TeamB": str, f"ScoreA": int, "ScoreB": int, f"Factor": int}
+COLUMNS = ["Name", f"TeamA", f"TeamB", f"ScoreA", "ScoreB", f"Factor", f"Kanonenwilli"]
+DTYPES = {"Name": str, f"TeamA": str, f"TeamB": str, f"ScoreA": int, "ScoreB": int, f"Factor": int, f"Kanonenwilli": 'Int64'}
 INDEX_COLUMNS = ["Name", f"TeamA", f"TeamB"]
-DEV_FLAG = False
+DEV_FLAG = True
 ROOT = os.getcwd()
 SNS_COLORS = [
     '#a1c9f4', '#ffb482', '#8de5a1', '#ff9f9b', '#d0bbff', '#debb9b', '#fab0e4', '#cfcfcf', '#fffea3', '#b9f2f0'
@@ -19,7 +19,10 @@ SNS_COLORS = [
 def load_data(date_str):
     filepath = ROOT + f"/data/tips/{date_str}.csv"
     if os.path.exists(filepath):
-        return pd.read_csv(filepath, dtype=DTYPES).set_index(INDEX_COLUMNS)
+        df = pd.read_csv(filepath, dtype=DTYPES).set_index(INDEX_COLUMNS)
+        if "Kanonenwilli" not in df.columns:
+            df["Kanonenwilli"] = None
+        return df
     else:
         return pd.DataFrame(columns=COLUMNS).set_index(INDEX_COLUMNS)
 

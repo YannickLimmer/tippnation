@@ -23,6 +23,7 @@ def create_tip_entries(name, matches, data):
                             f"ScoreA": score_a,
                             "ScoreB": score_b,
                             f"Factor": factor,
+                            f"Kanonenwilli": None,
                         }
                     )
     return entries
