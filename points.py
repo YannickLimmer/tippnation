@@ -67,7 +67,6 @@ def compute_exotic(df, types):
     df["AvScoreDist"] = by_match.ScoreDist.mean()
     df = df.reset_index()
     df = df.set_index("index")
-    st.write(df)
     df["Exotic"] = (
             w * (
                 np.maximum(np.abs(df.AvScoreDiff - df.ResultDiff) - np.abs(df.ResultDiff - df.ScoreDiff), 0) +
