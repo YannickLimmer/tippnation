@@ -9,7 +9,7 @@ ss = st.session_state
 COLUMNS = ["Name", f"TeamA", f"TeamB", f"ScoreA", "ScoreB", f"Factor", f"Kanonenwilli"]
 DTYPES = {"Name": str, f"TeamA": str, f"TeamB": str, f"ScoreA": int, "ScoreB": int, f"Factor": int, f"Kanonenwilli": 'Int64'}
 INDEX_COLUMNS = ["Name", f"TeamA", f"TeamB"]
-DEV_FLAG = True
+DEV_FLAG = False
 ROOT = os.getcwd()
 SNS_COLORS = [
     '#a1c9f4', '#ffb482', '#8de5a1', '#ff9f9b', '#d0bbff', '#debb9b', '#fab0e4', '#cfcfcf', '#fffea3', '#b9f2f0'

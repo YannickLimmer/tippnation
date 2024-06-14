@@ -30,7 +30,7 @@ def heat_maps():
     def get_final_points(result_a, result_b):
         match_data.ResultA = result_a
         match_data.ResultB = result_b
-        res = compute_points(match_data).set_index("Name")
+        res = compute_points(match_data.set_index(["Datetime", "TeamA", "TeamB"])).reset_index().set_index("Name")
         return res.loc[p1, "Final"] - (res.loc[p2, "Final"] if p2 else 0)
 
     # Create a grid of points for result_a and result_b
