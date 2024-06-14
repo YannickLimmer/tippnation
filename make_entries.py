@@ -95,10 +95,10 @@ def make_entries():
 
     cols = st.columns(4)
     with cols[0]:
-        name = st.text_input("Username", placeholder="Username", on_change=logout) # label_visibility='collapsed',
+        name = st.text_input("Username", placeholder="Username", on_change=logout, autocomplete="current-user") # label_visibility='collapsed',
         # name = st.selectbox("Username", options=, index=None, label_visibility='collapsed', placeholder="Username", on_change=logout)
     with cols[1]:
-        pwd = st.text_input("Password", type="password", placeholder="Password") # , label_visibility='collapsed',
+        pwd = st.text_input("Password", type="password", placeholder="Password", autocomplete="current-password") # , label_visibility='collapsed',
     with cols[2]:
         if st.button("Login"):
             if name in user_info.keys():
