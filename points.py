@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from util import ss, load_data, INDEX_COLUMNS, ROOT, get_now
+from util import ss, load_data, INDEX_COLUMNS, ROOT, get_now, save_data
 
 TO_RANK = [8, 7, 6, 5, 4]
 PROBABILITIES = [0.1, 0.2, 0.4, 0.2, 0.1]
@@ -57,20 +57,23 @@ def compute_and_save_points(schedule):
         if points_with_willi.empty:
             df.loc[next_game.index, "Kanonenwilli"] = 0
         else:
-            df.loc[next_game.index, "Kanonenwilli"] = points_with_willi.loc[
-                df.loc[next_game.index, "Name"], "Kanonenwilli"
-            ].values
+            df.loc[next_game.index, "Kanonenwilli"] = points_with_willi.loc[df.loc[next_game.index, "Name"], "Kanonenwilli"].values
 
         # Save to tips
+        next_game = next_game.reset_index()
+        date_str = next_game.iloc[0]["Datetime"].strftime('%d-%b')
+        tips = load_data(date_str)
+        tips_ = (slice(None), next_game.reset_index().iloc[0].TeamA, next_game.reset_index().iloc[0].TeamB)
+        if points_with_willi.empty:
+            tips.loc[tips_, "Kanonenwilli"] = 0
+        else:
+            tips.loc[tips_, "Kanonenwilli"] = points_with_willi.loc[tips.loc[tips_, :].reset_index().Name, "Kanonenwilli"].values
+        save_data(date_str, tips)
 
         # Update last game
         willi_flag = ~pd.isna(df["Kanonenwilli"])
         df_with_willi = df[willi_flag]
         df_without_willi = df[~willi_flag]
-    st.write(points_with_willi)
-
-    st.write("DEBUG: Points with willi")
-    st.write(df)
 
     df = compute_points(df)
     st.dataframe(df)
