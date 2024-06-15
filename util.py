@@ -7,7 +7,7 @@ import streamlit as st
 from pytz import timezone
 
 pd.options.mode.chained_assignment = None  # default='warn'
-logging.basicConfig(format='%(levelname)s:%(asctime)s:%(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 ss = st.session_state
 COLUMNS = ["Name", f"TeamA", f"TeamB", f"ScoreA", "ScoreB", f"Factor", f"Kanonenwilli"]
