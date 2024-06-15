@@ -42,7 +42,7 @@ def fill_default_scores(n_cols, name, matches, data):
         dt, name_a, name_b, t = matches[i]
         for team in ('A', 'B'):
             if f"team_{team}_{i}" not in ss:
-                if (name, name_a, name_b) in data.index and data.loc[(name, name_a, name_b), :][f"Score{team}"] is not None:
+                if (name, name_a, name_b) in data.index and not any(pd.isna(data.loc[(name, name_a, name_b), :][f"Score{team}"])):
                     ss[f"team_{team}_{i}"] = data.loc[(name, name_a, name_b), :][f"Score{team}"].astype(int)
                 else:
                     ss[f"team_{team}_{i}"] = 0
