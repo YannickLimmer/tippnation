@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 import streamlit as st
 
@@ -130,7 +132,6 @@ def make_entries():
         data = load_data(date_str)
         # st.dataframe(data[data.reset_index()["Name"].values == name])
         entries = create_tip_entries(name, matches, data)
-        logging.info("Created tips", entries)
 
     button = False
     if entries:
@@ -145,6 +146,7 @@ def make_entries():
             new_data = pd.DataFrame(entries).set_index(INDEX_COLUMNS)
             for idx in new_data.index:
                 data.loc[idx, :] = new_data.loc[idx, :]
+            logging.info("Created tips", json.dumps(entries))
             save_data(date_str, data)
             st.success("Entries have been saved successfully!")
         else:
