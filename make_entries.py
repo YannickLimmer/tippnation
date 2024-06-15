@@ -1,9 +1,12 @@
 import json
+import logging
 
 import pandas as pd
 import streamlit as st
 
-from util import get_now, ss, load_data, INDEX_COLUMNS, save_data, country_name_to_flag, logging
+from util import get_now, ss, load_data, INDEX_COLUMNS, save_data, country_name_to_flag
+
+logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
 def create_tip_entries(name, matches, data):
