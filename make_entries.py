@@ -42,7 +42,7 @@ def fill_default_scores(n_cols, name, matches, data):
         dt, name_a, name_b, t = matches[i]
         for team in ('A', 'B'):
             if f"team_{team}_{i}" not in ss:
-                if (name, name_a, name_b) in data.index and not any(pd.isna(data.loc[(name, name_a, name_b), :][f"Score{team}"])):
+                if (name, name_a, name_b) in data.index and not pd.isna(data.loc[(name, name_a, name_b), f"Score{team}"]):
                     ss[f"team_{team}_{i}"] = data.loc[(name, name_a, name_b), :][f"Score{team}"].astype(int)
                 else:
                     ss[f"team_{team}_{i}"] = 0
@@ -55,8 +55,7 @@ def manage_factor_budget(n_cols, name, matches, data):
         dt, name_a, name_b, t = matches[i]
         factor_budget += ss["Types"][t]["MaxFactor"]
         if f"factor_{i}" not in ss:
-            if (name, name_a, name_b) in data.index and data.loc[(name, name_a, name_b), "Factor"].item() is not None:
-                print(data.loc[(name, name_a, name_b), :])
+            if (name, name_a, name_b) in data.index and not pd.isna(data.loc[(name, name_a, name_b), f"Factor"]):
                 ss[f"factor_{i}"] = data.loc[(name, name_a, name_b), :].Factor.astype(int)
             else:
                 ss[f"factor_{i}"] = 1  # ss["Types"][t]["MaxFactor"]
