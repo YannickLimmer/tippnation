@@ -32,6 +32,13 @@ def fill_missing(schedule):
                 x, y = simulate_outcome()
                 df.loc[(name, row["TeamA"], row["TeamB"])] = {f"ScoreA": x, "ScoreB": y, f"Factor": types[row["Type"]]["MaxFactor"]}
         save_data(row["Datetime"].strftime('%d-%b'), df)
+    for i, row in schedule[(schedule.Datetime > get_now()).values].iterrows():
+        df = load_data(row["Datetime"].strftime('%d-%b'))
+        for name in ss["user_info"].keys():
+            if (name, row["TeamA"], row["TeamB"]) not in df.index:
+                df.loc[(name, row["TeamA"], row["TeamB"])] = None
+        save_data(row["Datetime"].strftime('%d-%b'), df)
+
 
 
 def zip_csv_files(folder_path):
