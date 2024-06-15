@@ -9,6 +9,7 @@ from display_points import display_points
 from heat_map import heat_maps
 from instructions import display_instructions
 from make_entries import make_entries
+from streamlit_gsheets import GSheetsConnection
 from util import ss, DEV_FLAG, ROOT, get_now
 
 
@@ -30,6 +31,8 @@ def main():
 
     with open(ROOT + "/data/Admin.json", "r") as fp:
         ss["Types"] = json.load(fp)["Types"]
+
+    ss["conn"] = st.connection("gsheets", type=GSheetsConnection)
 
     if DEV_FLAG:
         with st.container(border=True):

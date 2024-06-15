@@ -4,6 +4,7 @@ import logging
 import pandas as pd
 import streamlit as st
 
+from points import collect_complete_match_data
 from util import get_now, ss, load_data, INDEX_COLUMNS, save_data, country_name_to_flag
 
 streamlit_root_logger = logging.getLogger(st.__name__)
@@ -150,8 +151,8 @@ def make_entries():
             new_data = pd.DataFrame(entries).set_index(INDEX_COLUMNS)
             for idx in new_data.index:
                 data.loc[idx, :] = new_data.loc[idx, :]
-            streamlit_root_logger.info("Created tips: " + json.dumps(entries))
             save_data(date_str, data)
+            ss["conn"].update(worksheet="Tips", data=collect_complete_match_data(ss["schedule"]))
             st.success("Entries have been saved successfully!")
         else:
             st.warning("Password is incorrect. Are you trying to cheat?")
