@@ -35,6 +35,9 @@ def compute_and_save_points(schedule):
     df_with_willi = df[willi_flag]
     df_without_willi = df[~willi_flag]
     while (not df_without_willi.empty) and all(~pd.isna(df_with_willi.ResultA) & ~ pd.isna(df_with_willi.ResultB)):
+        if len(df_without_willi.Name.unique()) < 11:
+            break
+
         # Find next game data
         grouped_by_game = df_without_willi.groupby(["Datetime", "TeamA", "TeamB"])
         next_game = grouped_by_game.get_group((list(grouped_by_game.groups)[0]))
