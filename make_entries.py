@@ -146,7 +146,7 @@ def make_entries():
             new_data = pd.DataFrame(entries).set_index(INDEX_COLUMNS)
             for idx in new_data.index:
                 data.loc[idx, :] = new_data.loc[idx, :]
-            logging.info("Created tips", json.dumps(entries))
+            logging.info("Created tips: " + json.dumps(entries))
             save_data(date_str, data)
             st.success("Entries have been saved successfully!")
         else:
