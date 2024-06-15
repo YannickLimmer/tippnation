@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from util import get_now, ss, load_data, INDEX_COLUMNS, save_data, country_name_to_flag
+from util import get_now, ss, load_data, INDEX_COLUMNS, save_data, country_name_to_flag, logging
 
 
 def create_tip_entries(name, matches, data):
@@ -130,6 +130,7 @@ def make_entries():
         data = load_data(date_str)
         # st.dataframe(data[data.reset_index()["Name"].values == name])
         entries = create_tip_entries(name, matches, data)
+        logging.info("Created tips", entries)
 
     button = False
     if entries:
