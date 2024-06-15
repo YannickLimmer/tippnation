@@ -3,7 +3,7 @@ import json
 import streamlit as st
 import pandas as pd
 
-from admin import modify_schedule
+from admin import admin
 from display_entries import display_entries
 from display_points import display_points
 from heat_map import heat_maps
@@ -51,7 +51,7 @@ def main():
     with tabs[4]:
         display_instructions()
     with tabs[-1]:
-        modify_schedule()
+        admin()
 
 
 if __name__ == "__main__":

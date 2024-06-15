@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 from points import compute_and_save_points
-from util import ss, ROOT, get_now, load_data, save_data, logging
+from util import ss, ROOT, get_now, load_data, save_data, logging, DTYPES, INDEX_COLUMNS
 
 # Parameters
 LAMBDA_A = 1.2
@@ -53,7 +53,23 @@ def zip_csv_files(folder_path):
     return zip_buffer
 
 
-def modify_schedule():
+def admin():
+    pwd = st.text_input("Enter Admin Password", type="password")
+
+    tips = st.file_uploader("Upload tips", type="csv", accept_multiple_files=True)
+    tip_dfs = {}
+    for tip in tips:
+        tip_dfs[tip.name[:-4]] = pd.read_csv(tip, dtype=DTYPES).set_index(INDEX_COLUMNS)
+        st.write(tip_dfs[tip.name[:-4]])
+
+    if st.button("Save files"):
+        if pwd == st.secrets["Admin"]["Password"]:
+            for date_str, tip_df in tip_dfs.items():
+                save_data(date_str, tip_df)
+            st.success("Files uploaded.")
+        else:
+            st.warning("Password incorrect.")
+
     uploaded_file = st.file_uploader("Upload a schedule", type="csv")
 
     # Check if a file has been uploaded
@@ -65,12 +81,8 @@ def modify_schedule():
     schedule = st.data_editor(ss["schedule"], hide_index=True, num_rows="dynamic", column_config={
                 "Datetime": st.column_config.DateColumn("Date", format="DD-MMM, HH:mm")
     })
-    cols = st.columns(4)
-    with cols[0]:
-        pwd = st.text_input("Enter Admin Password", type="password")
-    with cols[1]:
-        button_bets = st.button("Save and Compute Points")
-    if button_bets:
+
+    if st.button("Save and Compute Points"):
         if pwd == st.secrets["Admin"]["Password"]:
             schedule.to_csv(ROOT + "/data/Schedule.csv")
             st.success("Changes have been saved successfully!")
@@ -80,22 +92,22 @@ def modify_schedule():
             st.success("Computation of points completed!")
         else:
             st.warning("Password is incorrect.")
-    with cols[2]:
-        if st.button("Request all tips"):
-            if pwd == st.secrets["Admin"]["Password"]:
-                try:
-                    # Create the zip file
-                    zip_buffer = zip_csv_files(ROOT + "/data/tips/")
 
-                    # Provide the download button for the zip file
-                    st.download_button(
-                        label="Download ZIP",
-                        data=zip_buffer,
-                        file_name="tips.zip",
-                        mime="application/zip"
-                    )
+    if st.button("Request all tips"):
+        if pwd == st.secrets["Admin"]["Password"]:
+            try:
+                # Create the zip file
+                zip_buffer = zip_csv_files(ROOT + "/data/tips/")
 
-                except Exception as e:
-                    st.error(f"An error occurred: {e}")
-            else:
-                st.warning("Password is incorrect.")
+                # Provide the download button for the zip file
+                st.download_button(
+                    label="Download ZIP",
+                    data=zip_buffer,
+                    file_name="tips.zip",
+                    mime="application/zip"
+                )
+
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+        else:
+            st.warning("Password is incorrect.")
