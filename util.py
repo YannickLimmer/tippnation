@@ -11,7 +11,7 @@ logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=logg
 
 ss = st.session_state
 COLUMNS = ["Name", f"TeamA", f"TeamB", f"ScoreA", "ScoreB", f"Factor", f"Kanonenwilli"]
-DTYPES = {"Name": str, f"TeamA": str, f"TeamB": str, f"ScoreA": int, "ScoreB": int, f"Factor": int, f"Kanonenwilli": 'Int64'}
+DTYPES = {"Name": str, f"TeamA": str, f"TeamB": str, f"ScoreA": 'Int64', "ScoreB": 'Int64', f"Factor": 'Int64', f"Kanonenwilli": 'Int64'}
 INDEX_COLUMNS = ["Name", f"TeamA", f"TeamB"]
 DEV_FLAG = False
 ROOT = os.getcwd()
