@@ -91,21 +91,35 @@ def logout():
     ss["login"] = False
 
 
+YN_EMOJI = {True: ":white_check_mark:", False: ":x:"}
+
+
 def make_entries():
     # st.title("Score Entries")
 
     schedule = ss["schedule"]
     user_info = ss["user_info"]
 
+    next_game = schedule[(schedule.Datetime >= get_now()).values].iloc[0]
+    next_game_tips = load_data(next_game.Datetime.strftime('%d-%b')).loc[(slice(None), next_game.TeamA, next_game.TeamB), :]
+
+    st.write("Tipped for next game: ", " , ".join([n + " " + YN_EMOJI[
+        pd.notna(next_game_tips.loc[(n, next_game.TeamA, next_game.TeamB), "ScoreA"])
+    ] for n in user_info.keys()]))
+    kws = {n: next_game_tips.loc[(n, next_game.TeamA, next_game.TeamB), "Kanonenwilli"] for n in user_info.keys()}
+    st.write("Kanonewilli for next game: ", " , ".join([
+        n + " :rocket: (+" + str(int(kw)) + ")" for n, kw in kws.items() if pd.notna(kw) and kw != 0
+    ]))
+
     if "login" not in ss:
         ss["login"] = False
 
     cols = st.columns(4)
     with cols[0]:
-        name = st.text_input("Username", placeholder="Username", on_change=logout, autocomplete="username", label_visibility='collapsed',) #
+        name = st.text_input("Username", placeholder="Username", on_change=logout, autocomplete="username", label_visibility='collapsed',)
         # name = st.selectbox("Username", options=list(user_info.keys()), index=None, label_visibility='collapsed', placeholder="Username", on_change=logout)
     with cols[1]:
-        pwd = st.text_input("Password", type="password", placeholder="Password", autocomplete="current-password", label_visibility='collapsed') #
+        pwd = st.text_input("Password", type="password", placeholder="Password", autocomplete="current-password", label_visibility='collapsed')
     with cols[2]:
         if st.button("Login"):
             if name in user_info.keys():
