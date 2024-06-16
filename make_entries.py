@@ -150,7 +150,7 @@ def make_entries():
         if pwd == st.secrets[name]["Password"]:
             new_data = pd.DataFrame(entries).set_index(INDEX_COLUMNS)
             for idx in new_data.index:
-                data.loc[idx, :] = new_data.loc[idx, :]
+                data.loc[idx, ("ScoreA", "ScoreB", "Factor")] = new_data.loc[idx, :]
             save_data(date_str, data)
             ss["conn"].update(worksheet="Tips", data=collect_complete_match_data(ss["schedule"]))
             st.success("Entries have been saved successfully!")

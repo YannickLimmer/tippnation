@@ -28,9 +28,9 @@ def fill_missing(schedule):
         df = load_data(row["Datetime"].strftime('%d-%b'))
         for name in ss["user_info"].keys():
             if (name, row["TeamA"], row["TeamB"]) not in df.index or pd.isna(df.loc[(name, row["TeamA"], row["TeamB"]), "ScoreA"]):
-                logging.info(f"Fill in data for {name, row['TeamA'], row['TeamB']} at date {row['Datetime'].strftime('%d-%b')}")
+                st.info(f"Fill in data for {name, row['TeamA'], row['TeamB']} at date {row['Datetime'].strftime('%d-%b')}")
                 x, y = simulate_outcome()
-                df.loc[(name, row["TeamA"], row["TeamB"])] = {f"ScoreA": x, "ScoreB": y, f"Factor": types[row["Type"]]["MaxFactor"]}
+                df.loc[(name, row["TeamA"], row["TeamB"]), ("ScoreA", "ScoreB", "Factor")] = x, y, types[row["Type"]]["MaxFactor"]
         save_data(row["Datetime"].strftime('%d-%b'), df)
     for i, row in schedule[(schedule.Datetime > get_now()).values].iterrows():
         df = load_data(row["Datetime"].strftime('%d-%b'))
