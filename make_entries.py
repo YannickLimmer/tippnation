@@ -107,7 +107,7 @@ def make_entries():
         pd.notna(next_game_tips.loc[(n, next_game.TeamA, next_game.TeamB), "ScoreA"])
     ] for n in user_info.keys()]))
     kws = {n: next_game_tips.loc[(n, next_game.TeamA, next_game.TeamB), "Kanonenwilli"] for n in user_info.keys()}
-    st.write("Kanonenwilli for next game: ", " , ".join([
+    st.write("Kanonenwilli chance for next game: ", " , ".join([
         n + " :rocket: (+" + str(int(kw)) + ")" for n, kw in kws.items() if pd.notna(kw) and kw != 0
     ]))
 
