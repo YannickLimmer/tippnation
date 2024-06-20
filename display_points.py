@@ -39,16 +39,46 @@ def display_points():
         ) for k in df.columns if "Points" in k
     })
 
+    st.markdown("### Standings")
+    standings = df_raw[["Name", "Base", "FBase", "Exotic", "Fav", "KW", "Final"]]
+    standings = standings.rename({"Base": "Raw", "FBase": "Base", "Fav": "Favorite", "KW": "Kanonenwilli"}, axis=1)
+    standings = standings.groupby("Name").sum().sort_values("Final", ascending=False).reset_index()
+    standings["Rank"] = standings["Final"].rank(method='min', ascending=False).astype(int)
+    standings = standings[["Name", "Rank", "Raw", "Base", "Exotic", "Favorite", "Kanonenwilli", "Final"]].set_index("Name")
+    st.dataframe(standings.style.applymap(lambda x: f"background-color: {SNS_COLORS[0]}", subset="Final"), hide_index=False)
+
     st.markdown("### Points Progression")
     st.line_chart(df.reset_index()[[k for k in df.columns if "Sum" in k]].rename({k: k[:-4] for k in df.columns}, axis=1))
 
-    st.markdown("### Standings")
-    standings = df_raw[["Name", "FBase", "Exotic", "Fav", "KW", "Final"]]
-    standings = standings.rename({"FBase": "Base", "Exotic": "Exotic Bonus", "Fav": "Favorite Bonus", "KW": "Kanonenwilli"}, axis=1)
-    standings = standings.groupby("Name").sum().sort_values("Final", ascending=False).reset_index()
-    standings["Rank"] = standings["Final"].rank(method='min', ascending=False).astype(int)
-    standings = standings[["Name", "Rank", "Base", "Exotic Bonus", "Favorite Bonus", "Kanonenwilli", "Final"]].set_index("Name")
-    st.dataframe(standings.style.applymap(lambda x: f"background-color: {SNS_COLORS[0]}", subset="Final"), hide_index=False)
+    with st.expander("Base Progression"):
+        df = df_raw.rename({"TeamA": "Team A", "TeamB": "Team B", "ResultA": "Result A", "ResultB": "Result B"}, axis=1)
+        df = df.set_index(["Datetime", "Team A", "Team B", "Result A", "Result B", "Name"])
+        df.Final -= df.KW
+        df = df[["FBase"]]
+        df = df.unstack('Name')
+        max_points = int(np.ceil(df.fillna(0).values.max()))
+        cols = df.columns.values
+        df.columns = [col[-1] + " Points" for col in cols]
+        df = df.sort_index()
+        for col in cols:
+            df[col[-1] + " Sum"] = df[col[-1] + " Points"].cumsum()
+        df = df[[v for col in cols for v in [col[-1] + " Points", col[-1] + " Sum"]]]
+        st.line_chart(df.reset_index()[[k for k in df.columns if "Sum" in k]].rename({k: k[:-4] for k in df.columns}, axis=1))
+
+    with st.expander("Progression without Kanonenwilli"):
+        df = df_raw.rename({"TeamA": "Team A", "TeamB": "Team B", "ResultA": "Result A", "ResultB": "Result B"}, axis=1)
+        df = df.set_index(["Datetime", "Team A", "Team B", "Result A", "Result B", "Name"])
+        df.Final -= df.KW
+        df = df[["Final"]]
+        df = df.unstack('Name')
+        max_points = int(np.ceil(df.fillna(0).values.max()))
+        cols = df.columns.values
+        df.columns = [col[-1] + " Points" for col in cols]
+        df = df.sort_index()
+        for col in cols:
+            df[col[-1] + " Sum"] = df[col[-1] + " Points"].cumsum()
+        df = df[[v for col in cols for v in [col[-1] + " Points", col[-1] + " Sum"]]]
+        st.line_chart(df.reset_index()[[k for k in df.columns if "Sum" in k]].rename({k: k[:-4] for k in df.columns}, axis=1))
 
     st.markdown("### Point Composition")
     dcols = st.columns(4)
