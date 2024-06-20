@@ -92,3 +92,4 @@ def display_points():
         with dcol:
             st.write(f"{n1} vs {n2}")
             st.bar_chart(g.drop(["Datetime", "TeamA", "TeamB"], axis=1).groupby("Name").sum())
+

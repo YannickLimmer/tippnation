@@ -124,9 +124,9 @@ def compute_base(df):
                    )
            ) * 2 - 1
     base += ((np.abs(df["ResultA"] - df["ScoreA"]) + np.abs(df.ResultB - df.ScoreB)) <= 1) * 1
-    base += ((df["ResultA"] != df["ResultB"]) & (df.ScoreDiff == df.ResultDiff)) * 1
+    base += (df.ScoreDiff == df.ResultDiff) * 1  # ((df["ResultA"] != df["ResultB"]) & )
     base += ((df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"])) * 2
-    base += ((df["ResultA"] == df["ResultB"]) & (df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"])) * 1
+    # base += ((df["ResultA"] == df["ResultB"]) & (df["ScoreA"] == df["ResultA"]) & (df["ScoreB"] == df["ResultB"])) * 1
     return base
 
 
