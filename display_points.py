@@ -40,11 +40,12 @@ def display_points():
     })
 
     st.markdown("### Standings")
-    standings = df_raw[["Name", "Base", "FBase", "Exotic", "Fav", "KW", "Final"]]
+    standings = df_raw[["Name", "Base", "FBase", "Factor", "Exotic", "Fav", "KW", "Final"]]
     standings = standings.rename({"Base": "Raw", "FBase": "Base", "Fav": "Favorite", "KW": "Kanonenwilli"}, axis=1)
     standings = standings.groupby("Name").sum().sort_values("Final", ascending=False).reset_index()
     standings["Rank"] = standings["Final"].rank(method='min', ascending=False).astype(int)
-    standings = standings[["Name", "Rank", "Raw", "Base", "Exotic", "Favorite", "Kanonenwilli", "Final"]].set_index("Name")
+    standings["Eff."] = ((standings["Base"] - standings["Factor"]) / standings["Raw"]).apply(lambda x: f"x {x:1.2f}")
+    standings = standings[["Name", "Rank", "Raw", "Eff.", "Base", "Exotic", "Favorite", "Kanonenwilli", "Final"]].set_index("Name")
     st.dataframe(standings.style.applymap(lambda x: f"background-color: {SNS_COLORS[0]}", subset="Final"), hide_index=False)
 
     st.markdown("### Points Progression")
