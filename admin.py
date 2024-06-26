@@ -83,7 +83,7 @@ def admin():
     if uploaded_file is not None:
         # Read the CSV file into a Pandas DataFrame
         ss["schedule"] = pd.read_csv(uploaded_file)
-        ss["schedule"]["Datetime"] = pd.to_datetime(ss["schedule"]["Datetime"])
+        ss["schedule"]["Datetime"] = pd.to_datetime(ss["schedule"]["Datetime"], dayfirst=True)
 
     schedule = st.data_editor(ss["schedule"], hide_index=True, num_rows="dynamic", column_config={
                 "Datetime": st.column_config.DateColumn("Date", format="DD-MMM, HH:mm")
