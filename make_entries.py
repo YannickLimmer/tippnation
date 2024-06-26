@@ -100,7 +100,10 @@ def make_entries():
     schedule = ss["schedule"]
     user_info = ss["user_info"]
 
-    next_game = schedule[(schedule.Datetime >= get_now()).values].iloc[0]
+    try:
+        next_game = schedule[(schedule.Datetime >= get_now()).values].iloc[0]
+    except IndexError:
+        return
     next_game_tips = load_data(next_game.Datetime.strftime('%d-%b')).loc[(slice(None), next_game.TeamA, next_game.TeamB), :]
 
     st.write("Tipped for next game: ", " , ".join([n + " " + YN_EMOJI[
