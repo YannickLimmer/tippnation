@@ -92,7 +92,7 @@ def compute_points(df):
     df["ResultDiff"] = df.ResultA - df.ResultB
     df["ScoreDist"] = np.abs(df.ScoreA - df.ResultA) + np.abs(df.ScoreB - df.ResultB)
     df["Base"] = compute_base(df)
-    df["FBase"] = df.Base * df.Factor + df["Type"].apply(lambda s: types[s]["MaxFactor"])
+    df["FBase"] = df.Base * df.Factor + 3 # df["Type"].apply(lambda s: types[s]["MaxFactor"])
     df['Exotic'] = compute_exotic(df, types)
     df['Fav'] = compute_fav(df, types)
     df['KW'] = compute_kanonenwilli(df)
