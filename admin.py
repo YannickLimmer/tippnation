@@ -15,10 +15,12 @@ LAMBDA_B = 1.2
 LAMBDA_AB = 0.1
 
 
-def simulate_outcome():
+def simulate_outcome(t):
     n = np.random.poisson(LAMBDA_AB)
     x = np.random.poisson(LAMBDA_A) + n
     y = np.random.poisson(LAMBDA_B) + n
+    if t != "Group" and x == y:
+        return simulate_outcome(t)
     return x, y
 
 
@@ -29,7 +31,7 @@ def fill_missing(schedule):
         for name in ss["user_info"].keys():
             if (name, row["TeamA"], row["TeamB"]) not in df.index or pd.isna(df.loc[(name, row["TeamA"], row["TeamB"]), "ScoreA"]):
                 st.info(f"Fill in data for {name, row['TeamA'], row['TeamB']} at date {row['Datetime'].strftime('%d-%b')}")
-                x, y = simulate_outcome()
+                x, y = simulate_outcome(row["Type"])
                 df.loc[(name, row["TeamA"], row["TeamB"]), ("ScoreA", "ScoreB", "Factor")] = x, y, types[row["Type"]]["MaxFactor"]
         save_data(row["Datetime"].strftime('%d-%b'), df)
     for i, row in schedule[(schedule.Datetime > get_now()).values].iterrows():
