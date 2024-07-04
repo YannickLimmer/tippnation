@@ -57,6 +57,8 @@ def zip_csv_files(folder_path):
                     filepath = os.path.join(foldername, filename)
                     zip_file.write(filepath, os.path.relpath(filepath, folder_path))
 
+        zip_file.write(ROOT + "/data/schedule.csv")
+
     # Seek to the beginning of the byte stream
     zip_buffer.seek(0)
     return zip_buffer
