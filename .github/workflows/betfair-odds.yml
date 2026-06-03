@@ -34,7 +34,11 @@ jobs:
       TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
       TURSO_TOKEN: ${{ secrets.TURSO_TOKEN }}
       BETFAIR_APP_KEY: ${{ secrets.BETFAIR_APP_KEY }}
+      BETFAIR_USERNAME: ${{ secrets.BETFAIR_USERNAME }}
+      BETFAIR_PASSWORD: ${{ secrets.BETFAIR_PASSWORD }}
       BETFAIR_SESSION: ${{ secrets.BETFAIR_SESSION }}
+      BETFAIR_CERT_BASE64: ${{ secrets.BETFAIR_CERT_BASE64 }}
+      BETFAIR_KEY_BASE64: ${{ secrets.BETFAIR_KEY_BASE64 }}
       BF_TOKEN: ${{ secrets.BF_TOKEN }}
       BF_SESSION: ${{ secrets.BF_SESSION }}
 
@@ -53,6 +57,15 @@ jobs:
 
       - name: Validate Python sources
         run: python -m compileall app.py tippnation
+
+      - name: Restore Betfair certs
+        run: |
+          set -euo pipefail
+          if [[ -n "${BETFAIR_CERT_BASE64:-}" && -n "${BETFAIR_KEY_BASE64:-}" ]]; then
+            python -c 'import base64, os; from pathlib import Path; decode=lambda value: base64.b64decode("".join(value.split()).replace("-", "+").replace("_", "/") + ("=" * ((-len("".join(value.split()).replace("-", "+").replace("_", "/"))) % 4)), validate=True); certs=Path("certs"); certs.mkdir(exist_ok=True); (certs / "betfair.crt").write_bytes(decode(os.environ["BETFAIR_CERT_BASE64"])); key=certs / "betfair.key"; key.write_bytes(decode(os.environ["BETFAIR_KEY_BASE64"])); key.chmod(0o600)'
+            echo "BETFAIR_CERT_PATH=certs/betfair.crt" >> "$GITHUB_ENV"
+            echo "BETFAIR_KEY_PATH=certs/betfair.key" >> "$GITHUB_ENV"
+          fi
 
       - name: Poll Betfair and save odds
         run: |

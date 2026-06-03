@@ -11,6 +11,7 @@ from .config import DEFAULT_EVENT_CONFIG, EventConfig, load_event_config
 from .db import Database, connect, ensure_schema
 from .odds import (
     keep_betfair_session_alive,
+    login_betfair_with_certificate,
     odds_refresh_decision,
     refresh_betfair_odds,
     refresh_market_odds_if_due,
@@ -54,6 +55,17 @@ def update_betting_odds(
                 skipped_reason="Betfair credentials are not configured.",
             )
 
+        try:
+            settings = login_betfair_with_certificate(settings)
+        except Exception as exc:
+            return LocalOddsUpdateResult(
+                attempted=False,
+                updated_matches=0,
+                locked_matches=locked_before,
+                unmatched_matches=0,
+                error=str(exc),
+            )
+
         keep_alive = keep_betfair_session_alive(settings)
         if str(keep_alive.get("status", "")).upper() != "SUCCESS":
             return LocalOddsUpdateResult(
@@ -88,6 +100,43 @@ def update_betting_odds(
         )
     finally:
         db.close()
+
+
+def check_betfair_auth() -> LocalOddsUpdateResult:
+    settings = get_betfair_settings()
+    if settings is None:
+        return LocalOddsUpdateResult(
+            attempted=False,
+            updated_matches=0,
+            locked_matches=0,
+            unmatched_matches=0,
+            skipped_reason="Betfair credentials are not configured.",
+        )
+    try:
+        settings = login_betfair_with_certificate(settings)
+    except Exception as exc:
+        return LocalOddsUpdateResult(
+            attempted=False,
+            updated_matches=0,
+            locked_matches=0,
+            unmatched_matches=0,
+            error=str(exc),
+        )
+    keep_alive = keep_betfair_session_alive(settings)
+    if str(keep_alive.get("status", "")).upper() != "SUCCESS":
+        return LocalOddsUpdateResult(
+            attempted=False,
+            updated_matches=0,
+            locked_matches=0,
+            unmatched_matches=0,
+            skipped_reason=f"Betfair keep-alive failed: {keep_alive.get('status', 'unknown')}",
+        )
+    return LocalOddsUpdateResult(
+        attempted=True,
+        updated_matches=0,
+        locked_matches=0,
+        unmatched_matches=0,
+    )
 
 
 def _target_match_ids(matches: pd.DataFrame, now: datetime, all_upcoming: bool) -> list[str]:
@@ -142,16 +191,24 @@ def main() -> None:
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="Exit non-zero for CI-relevant failures such as missing Betfair credentials, keep-alive failure, or refresh errors.",
+        help="Exit non-zero for CI-relevant failures such as missing Betfair credentials, certificate login failure, keep-alive failure, or refresh errors.",
+    )
+    parser.add_argument(
+        "--auth-check",
+        action="store_true",
+        help="Only test Betfair certificate/session login and keep-alive. Does not connect to the database.",
     )
     args = parser.parse_args()
 
-    result = update_betting_odds(
-        config_path=args.config,
-        force=bool(args.force),
-        all_upcoming=bool(args.all_upcoming),
-        now=_parse_now(args.now),
-    )
+    if args.auth_check:
+        result = check_betfair_auth()
+    else:
+        result = update_betting_odds(
+            config_path=args.config,
+            force=bool(args.force),
+            all_upcoming=bool(args.all_upcoming),
+            now=_parse_now(args.now),
+        )
     print(f"attempted={result.attempted}")
     print(f"updated_matches={result.updated_matches}")
     print(f"unmatched_matches={result.unmatched_matches}")

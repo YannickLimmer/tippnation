@@ -3,13 +3,19 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import re
 import ssl
+import tempfile
 import unicodedata
 import urllib.error
+import urllib.parse
 import urllib.request
-from dataclasses import dataclass
+from base64 import b64decode
+from binascii import Error as Base64Error
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -33,6 +39,7 @@ BETFAIR_SOCCER_EVENT_TYPE_ID = "1"
 BETFAIR_WORLD_CUP_COMPETITION_ID = "12469077"
 BETFAIR_URL = "https://api.betfair.com/exchange/betting/json-rpc/v1"
 BETFAIR_KEEP_ALIVE_URL = "https://identitysso.betfair.com/api/keepAlive"
+BETFAIR_CERT_LOGIN_URL = "https://identitysso-cert.betfair.com/api/certlogin"
 CORE_MARKET_TYPES = [
     "MATCH_ODDS",
     "CORRECT_SCORE",
@@ -132,6 +139,8 @@ class OddsRefreshResult:
 
 class BetfairClient:
     def __init__(self, settings: BetfairSettings) -> None:
+        if not settings.session_token:
+            raise ValueError("Betfair session token is required for exchange API calls.")
         self.settings = settings
         self.context = ssl.create_default_context()
 
@@ -218,6 +227,8 @@ class BetfairClient:
 
 
 def keep_betfair_session_alive(settings: BetfairSettings) -> dict[str, Any]:
+    if not settings.session_token:
+        return {"status": "MISSING_SESSION_TOKEN"}
     request = urllib.request.Request(
         BETFAIR_KEEP_ALIVE_URL,
         data=b"",
@@ -240,6 +251,108 @@ def keep_betfair_session_alive(settings: BetfairSettings) -> dict[str, Any]:
     except json.JSONDecodeError:
         return {"status": "NON_JSON_RESPONSE", "body": body[:500]}
     return data if isinstance(data, dict) else {"status": "UNKNOWN_RESPONSE", "body": data}
+
+
+def login_betfair_with_certificate(settings: BetfairSettings) -> BetfairSettings:
+    if not settings.has_certificate_login:
+        return settings
+    if not settings.username or not settings.password:
+        raise RuntimeError("Betfair certificate login requires BETFAIR_USERNAME and BETFAIR_PASSWORD.")
+
+    with _betfair_cert_files(settings) as cert_files:
+        context = ssl.create_default_context()
+        try:
+            context.load_cert_chain(certfile=str(cert_files.cert_path), keyfile=str(cert_files.key_path))
+        except ssl.SSLError as exc:
+            raise RuntimeError(f"Betfair certificate/key could not be loaded: {exc}") from exc
+        payload = urllib.parse.urlencode({"username": settings.username, "password": settings.password}).encode("utf-8")
+        request = urllib.request.Request(
+            BETFAIR_CERT_LOGIN_URL,
+            data=payload,
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": "tippnation-odds/0.1",
+                "X-Application": settings.app_key,
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=30, context=context) as response:
+                body = response.read().decode("utf-8", errors="replace")
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Betfair certificate login failed: HTTP {exc.code} {body[:500]}") from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"Betfair certificate login failed: {exc.reason}") from exc
+
+    try:
+        data = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Betfair certificate login returned non-JSON response: {body[:500]}") from exc
+
+    session_token = data.get("sessionToken") if isinstance(data, dict) else None
+    if not session_token:
+        login_status = data.get("loginStatus") if isinstance(data, dict) else "UNKNOWN_RESPONSE"
+        raise RuntimeError(f"Betfair certificate login failed: {login_status}")
+    return replace(settings, session_token=str(session_token))
+
+
+@dataclass(frozen=True)
+class _BetfairCertFiles:
+    cert_path: Path
+    key_path: Path
+
+
+class _betfair_cert_files:
+    def __init__(self, settings: BetfairSettings) -> None:
+        self.settings = settings
+        self._temporary_directory: tempfile.TemporaryDirectory[str] | None = None
+
+    def __enter__(self) -> _BetfairCertFiles:
+        if self.settings.cert_path and self.settings.key_path:
+            cert_path = Path(self.settings.cert_path)
+            key_path = Path(self.settings.key_path)
+            cert_bytes = cert_path.read_bytes()
+            if b"-----BEGIN CERTIFICATE-----" in cert_bytes:
+                return _BetfairCertFiles(cert_path, key_path)
+            self._temporary_directory = tempfile.TemporaryDirectory(prefix="tippnation-betfair-")
+            normalized_cert_path = Path(self._temporary_directory.name) / "betfair.crt"
+            normalized_cert_path.write_bytes(_certificate_pem_bytes(cert_bytes))
+            return _BetfairCertFiles(normalized_cert_path, key_path)
+        if not self.settings.cert_base64 or not self.settings.key_base64:
+            raise RuntimeError("Betfair certificate login requires cert/key paths or base64 payloads.")
+
+        self._temporary_directory = tempfile.TemporaryDirectory(prefix="tippnation-betfair-")
+        directory = Path(self._temporary_directory.name)
+        cert_path = directory / "betfair.crt"
+        key_path = directory / "betfair.key"
+        cert_path.write_bytes(_certificate_pem_bytes(_decode_base64_secret(self.settings.cert_base64, "BETFAIR_CERT_BASE64")))
+        key_path.write_bytes(_decode_base64_secret(self.settings.key_base64, "BETFAIR_KEY_BASE64"))
+        os.chmod(key_path, 0o600)
+        return _BetfairCertFiles(cert_path, key_path)
+
+    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+        if self._temporary_directory is not None:
+            self._temporary_directory.cleanup()
+
+
+def _decode_base64_secret(value: str, name: str) -> bytes:
+    compact = "".join(value.split()).replace("-", "+").replace("_", "/")
+    padding = (-len(compact)) % 4
+    try:
+        return b64decode(compact + ("=" * padding), validate=True)
+    except Base64Error as exc:
+        raise RuntimeError(f"{name} is not valid base64.") from exc
+
+
+def _certificate_pem_bytes(value: bytes) -> bytes:
+    if b"-----BEGIN CERTIFICATE-----" in value:
+        return value
+    try:
+        return ssl.DER_cert_to_PEM_cert(value).encode("ascii")
+    except ValueError as exc:
+        raise RuntimeError("BETFAIR_CERT_BASE64 is not a valid PEM or DER certificate.") from exc
 
 
 def odds_refresh_decision(db: Database, event_id: str, matches: pd.DataFrame, now: datetime) -> OddsRefreshDecision:

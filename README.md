@@ -31,6 +31,11 @@ auth_token = "..."
 
 [betfair]
 app_key = "..."
+username = "..."
+password = "..."
+cert_base64 = "..."
+key_base64 = "..."
+# Optional fallback when certificate login is not configured:
 session_token = "..."
 ```
 
@@ -74,9 +79,17 @@ back to `data/events/world_cup_2026.json`.
 
 ## GitHub Actions Odds Refresh
 
-`.github/workflows/betfair-odds.yml` runs `python -m tippnation.odds_cli --strict` every hour at minute 17 UTC. Each run requests a Betfair session keep-alive before it decides whether odds are due, so the session is renewed hourly as long as Betfair accepts the session token from GitHub Actions. In strict mode, missing credentials, keep-alive failures, and refresh errors fail the Actions run instead of only printing a warning.
+`.github/workflows/betfair-odds.yml` runs `python -m tippnation.odds_cli --strict` every hour at minute 45 UTC. Each run logs in to Betfair with certificate authentication when `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`, and cert material are configured, then requests a session keep-alive before it decides whether odds are due. In strict mode, missing credentials, certificate login failures, keep-alive failures, and refresh errors fail the Actions run instead of only printing a warning.
 
-Create one repository secret named `TIPPNATION_SECRETS` whose value is the complete local `.secrets` TOML content, including Turso and Betfair sections. The workflow exposes that value only as `TIPPNATION_SECRETS_TOML` for the Python process; it is not written to the repository checkout. Alternatively, individual repository secrets named `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `BETFAIR_APP_KEY`, and `BETFAIR_SESSION` are also supported, along with the older `TURSO_TOKEN`, `BF_TOKEN`, and `BF_SESSION` names.
+Create one repository secret named `TIPPNATION_SECRETS` whose value is the complete local `.secrets` TOML content, including Turso and Betfair sections. The workflow exposes that value only as `TIPPNATION_SECRETS_TOML` for the Python process; it is not written to the repository checkout. Alternatively, individual repository secrets named `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`, `BETFAIR_CERT_BASE64`, and `BETFAIR_KEY_BASE64` are supported, along with fallback `BETFAIR_SESSION` and older `TURSO_TOKEN`, `BF_TOKEN`, and `BF_SESSION` names.
+
+When individual cert secrets are present, the workflow restores them to `certs/betfair.crt` and `certs/betfair.key` for the run only. The `certs/` directory is ignored by git. When the cert base64 values are supplied inside `TIPPNATION_SECRETS`, the Python CLI decodes them into a temporary directory instead.
+
+Test Betfair certificate login and keep-alive without touching Turso:
+
+```bash
+python -m tippnation.odds_cli --auth-check --strict
+```
 
 The workflow can also be started manually from the GitHub Actions tab:
 

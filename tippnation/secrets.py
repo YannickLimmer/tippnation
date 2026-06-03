@@ -24,7 +24,23 @@ class DatabaseSettings:
 @dataclass(frozen=True)
 class BetfairSettings:
     app_key: str
-    session_token: str
+    session_token: str | None = None
+    username: str | None = None
+    password: str | None = None
+    cert_path: str | None = None
+    key_path: str | None = None
+    cert_base64: str | None = None
+    key_base64: str | None = None
+
+    @property
+    def has_session_token(self) -> bool:
+        return bool(self.session_token)
+
+    @property
+    def has_certificate_login(self) -> bool:
+        has_cert_paths = bool(self.cert_path and self.key_path)
+        has_cert_payloads = bool(self.cert_base64 and self.key_base64)
+        return bool(self.username and self.password and (has_cert_paths or has_cert_payloads))
 
 
 def _mapping_to_dict(value: Any) -> dict[str, Any]:
@@ -128,9 +144,53 @@ def get_betfair_settings(source: Mapping[str, Any] | None = None) -> BetfairSett
         or secrets.get("BETFAIR_SESSION")
         or secrets.get("BF_SESSION")
     )
-    if not app_key or not session_token:
+    username = (
+        os.getenv("BETFAIR_USERNAME")
+        or _get_nested(secrets, ("betfair", "username"))
+        or secrets.get("BETFAIR_USERNAME")
+        or secrets.get("BF_USERNAME")
+    )
+    password = (
+        os.getenv("BETFAIR_PASSWORD")
+        or _get_nested(secrets, ("betfair", "password"))
+        or secrets.get("BETFAIR_PASSWORD")
+        or secrets.get("BF_PASSWORD")
+    )
+    cert_path = (
+        os.getenv("BETFAIR_CERT_PATH")
+        or _get_nested(secrets, ("betfair", "cert_path"))
+        or secrets.get("BETFAIR_CERT_PATH")
+    )
+    key_path = (
+        os.getenv("BETFAIR_KEY_PATH")
+        or _get_nested(secrets, ("betfair", "key_path"))
+        or secrets.get("BETFAIR_KEY_PATH")
+    )
+    cert_base64 = (
+        os.getenv("BETFAIR_CERT_BASE64")
+        or _get_nested(secrets, ("betfair", "cert_base64"))
+        or secrets.get("BETFAIR_CERT_BASE64")
+    )
+    key_base64 = (
+        os.getenv("BETFAIR_KEY_BASE64")
+        or _get_nested(secrets, ("betfair", "key_base64"))
+        or secrets.get("BETFAIR_KEY_BASE64")
+    )
+    if not app_key:
         return None
-    return BetfairSettings(app_key=str(app_key), session_token=str(session_token))
+    settings = BetfairSettings(
+        app_key=str(app_key),
+        session_token=str(session_token) if session_token else None,
+        username=str(username) if username else None,
+        password=str(password) if password else None,
+        cert_path=str(cert_path) if cert_path else None,
+        key_path=str(key_path) if key_path else None,
+        cert_base64=str(cert_base64) if cert_base64 else None,
+        key_base64=str(key_base64) if key_base64 else None,
+    )
+    if not settings.has_session_token and not settings.has_certificate_login:
+        return None
+    return settings
 
 
 def get_admin_password(source: Mapping[str, Any] | None = None) -> str | None:

@@ -5,4 +5,5 @@
 /data/tippnation.sqlite3
 /data/replay/
 /agent/
+/certs/
 *.pyc
