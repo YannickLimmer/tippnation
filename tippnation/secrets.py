@@ -8,7 +8,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import streamlit as st
+try:
+    import streamlit as st
+except ModuleNotFoundError:
+    st = None
 
 from .config import ROOT
 
@@ -80,10 +83,11 @@ def _read_packed_env_secrets() -> dict[str, Any]:
 def load_secret_sources() -> dict[str, Any]:
     merged: dict[str, Any] = {}
     merged.update(_read_dot_secrets())
-    try:
-        merged.update(_mapping_to_dict(st.secrets))
-    except Exception:
-        pass
+    if st is not None:
+        try:
+            merged.update(_mapping_to_dict(st.secrets))
+        except Exception:
+            pass
     merged.update(_read_packed_env_secrets())
     return merged
 
@@ -191,6 +195,21 @@ def get_betfair_settings(source: Mapping[str, Any] | None = None) -> BetfairSett
     if not settings.has_session_token and not settings.has_certificate_login:
         return None
     return settings
+
+
+def get_api_football_key(source: Mapping[str, Any] | None = None) -> str | None:
+    secrets = source or load_secret_sources()
+    value = (
+        os.getenv("API_FOOTBALL_KEY")
+        or os.getenv("APISPORTS_KEY")
+        or _get_nested(secrets, ("api_football", "key"))
+        or _get_nested(secrets, ("api_football", "api_key"))
+        or _get_nested(secrets, ("api_sports", "key"))
+        or _get_nested(secrets, ("api_sports", "api_key"))
+        or secrets.get("API_FOOTBALL_KEY")
+        or secrets.get("APISPORTS_KEY")
+    )
+    return str(value) if value else None
 
 
 def get_admin_password(source: Mapping[str, Any] | None = None) -> str | None:

@@ -1,6 +1,7 @@
 # TippNation Agent Guide
 
 This file is for future coding agents working in this repository. Keep it current when you learn something important about the app, architecture, deployment, or data model.
+Keep `TODO.md` current too, but keep it super concise.
 
 ## Repository Purpose
 
@@ -77,3 +78,8 @@ Current notes:
 - The generated World Cup final placeholder uses match ID `FIN1`; do not change it back to `F1`, because `F1` is already the Group F opener.
 - `data/events/international_friendlies_trial_2026.json` is a temporary June 5-7, 2026 deployment trial event generated from Betfair `Friendlies International` (`competition_id=12205166`). `tippnation/config.py` currently points `DEFAULT_EVENT_CONFIG` at this trial; switch it back to `world_cup_2026.json` after the trial.
 - Streamlit Cloud cannot reach Betfair reliably. Use `python -m tippnation.odds_cli` locally to refresh odds into Turso; the deployed app should only read stored odds and lock pre-game snapshots.
+- Use `python -m tippnation.results_cli` locally on a 5-minute schedule to fill live/final scores from API-FOOTBALL or TheSportsDB. It uses `data/result_poll_state.json` for local backoff/completion state, checks Turso only for locally due matches, and respects manually completed database results.
+- The friendlies trial uses TheSportsDB International Friendlies (`league_id=4562`, season `2026`). TheSportsDB names differ from Betfair/config names in places, e.g. `Republic of Ireland` vs `Ireland`, `Türkiye` vs `Turkey`, and sometimes reversed home/away.
+- Result polling also supports API-FOOTBALL via `API_FOOTBALL_KEY`; prefer stored fixture IDs over name matching.
+- The friendlies trial has a complete verified API-FOOTBALL map: league `10`, season `2026`, all 28 fixture IDs. API-FOOTBALL returned T01 and T21 with reversed home/away; the result poller swaps scores correctly.
+- API-FOOTBALL result polling checks from kickoff until four hours after kickoff and recomputes points whenever the stored score changes. Penalty shootout winners are represented as result-after-120-minutes plus one goal.

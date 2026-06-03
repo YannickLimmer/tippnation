@@ -598,7 +598,7 @@ def render_admin(
         column_config={
             "result_a": st.column_config.NumberColumn("Result A", min_value=0, max_value=30, step=1),
             "result_b": st.column_config.NumberColumn("Result B", min_value=0, max_value=30, step=1),
-            "status": st.column_config.SelectboxColumn("Status", options=["scheduled", "completed"]),
+            "status": st.column_config.SelectboxColumn("Status", options=["scheduled", "live", "completed"]),
         },
     )
     cols = st.columns(2)

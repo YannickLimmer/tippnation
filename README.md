@@ -74,6 +74,47 @@ Force every upcoming match in the event:
 python -m tippnation.odds_cli --force --all-upcoming
 ```
 
+## Local Result Polling
+
+Live and final scores can be filled from API-FOOTBALL or TheSportsDB by running a
+lightweight local poller. It first checks the event config and
+`data/result_poll_state.json`; if no match is locally due, it does not connect to
+the database or call an external API. When a match is due, it checks only those
+match rows in the database so manually entered results are respected. Only
+due matches in the live/final-settle window trigger provider API calls. API-FOOTBALL
+matches are checked from kickoff until four hours after kickoff; whenever the
+stored score changes, points are recomputed. After the four-hour window, use
+`--force` or manual admin entry for any stragglers.
+
+Run once:
+
+```bash
+python -m tippnation.results_cli
+```
+
+Run every 5 minutes from cron:
+
+```cron
+*/5 * * * * cd /path/to/tippnation && /usr/bin/python3 -m tippnation.results_cli --strict --provider auto --max-api-requests 2 --api-football-daily-budget 500 >> /path/to/tippnation/backup/result-poller.log 2>&1
+```
+
+Use `--dry-run` to test matching without writing results, points, or local state.
+`--provider auto` prefers API-FOOTBALL when `API_FOOTBALL_KEY` is configured and
+the event has `api_football` metadata; otherwise it falls back to TheSportsDB.
+API-FOOTBALL event configs can include `api_football.league_id`, `season`, and
+per-match `api_football_fixture_id` values. The friendlies trial has a complete
+API-FOOTBALL map: `league_id = 10`, `season = 2026`, and all 28 fixture IDs.
+With fixture IDs, up to 20 matches are refreshed in one API request. TheSportsDB's
+public v1 free key defaults to `123`; pass `--api-key` if you use a personal key.
+
+API-FOOTBALL currently has 7500 requests/day available, but production cron should
+still stay conservative. The poller stores local API-FOOTBALL request usage in
+`data/result_poll_state.json` and refuses calls after
+`--api-football-daily-budget`.
+
+Penalty shootouts use TippNation's convention: the result is the score after 120
+minutes plus one goal for the shootout winner.
+
 After the friendlies trial, switch `DEFAULT_EVENT_CONFIG` in `tippnation/config.py`
 back to `data/events/world_cup_2026.json`.
 

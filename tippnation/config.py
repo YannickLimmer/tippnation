@@ -31,6 +31,8 @@ class MatchConfig:
     team_a_name: str
     team_b_name: str
     venue: str | None
+    thesportsdb_event_id: str | None = None
+    api_football_fixture_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -45,6 +47,10 @@ class EventConfig:
     kanonenwilli_seed: str
     betfair_competition_id: str | None = None
     betfair_event_type_id: str = "1"
+    thesportsdb_league_id: str | None = None
+    thesportsdb_season: str | None = None
+    api_football_league_id: str | None = None
+    api_football_season: str | None = None
 
     def local_timezone(self) -> ZoneInfo:
         return ZoneInfo(self.timezone)
@@ -74,6 +80,16 @@ def load_event_config(path: Path = DEFAULT_EVENT_CONFIG) -> EventConfig:
             team_a_name=str(item["team_a_name"]),
             team_b_name=str(item["team_b_name"]),
             venue=item.get("venue"),
+            thesportsdb_event_id=(
+                str(item["thesportsdb_event_id"])
+                if item.get("thesportsdb_event_id")
+                else None
+            ),
+            api_football_fixture_id=(
+                str(item["api_football_fixture_id"])
+                if item.get("api_football_fixture_id")
+                else None
+            ),
         )
         for item in match_items
     ]
@@ -95,6 +111,26 @@ def load_event_config(path: Path = DEFAULT_EVENT_CONFIG) -> EventConfig:
             str(raw["betfair"].get("event_type_id", "1"))
             if isinstance(raw.get("betfair"), dict)
             else "1"
+        ),
+        thesportsdb_league_id=(
+            str(raw["thesportsdb"]["league_id"])
+            if isinstance(raw.get("thesportsdb"), dict) and raw["thesportsdb"].get("league_id")
+            else None
+        ),
+        thesportsdb_season=(
+            str(raw["thesportsdb"]["season"])
+            if isinstance(raw.get("thesportsdb"), dict) and raw["thesportsdb"].get("season")
+            else None
+        ),
+        api_football_league_id=(
+            str(raw["api_football"]["league_id"])
+            if isinstance(raw.get("api_football"), dict) and raw["api_football"].get("league_id")
+            else None
+        ),
+        api_football_season=(
+            str(raw["api_football"]["season"])
+            if isinstance(raw.get("api_football"), dict) and raw["api_football"].get("season")
+            else None
         ),
     )
 
@@ -210,6 +246,8 @@ def config_as_json(config: EventConfig) -> str:
                     "team_a_name": match.team_a_name,
                     "team_b_name": match.team_b_name,
                     "venue": match.venue,
+                    "thesportsdb_event_id": match.thesportsdb_event_id,
+                    "api_football_fixture_id": match.api_football_fixture_id,
                 }
                 for match in config.matches
             ],
@@ -219,6 +257,18 @@ def config_as_json(config: EventConfig) -> str:
                 "event_type_id": config.betfair_event_type_id,
             }
             if config.betfair_competition_id
+            else None,
+            "thesportsdb": {
+                "league_id": config.thesportsdb_league_id,
+                "season": config.thesportsdb_season,
+            }
+            if config.thesportsdb_league_id
+            else None,
+            "api_football": {
+                "league_id": config.api_football_league_id,
+                "season": config.api_football_season,
+            }
+            if config.api_football_league_id
             else None,
         },
         sort_keys=True,
