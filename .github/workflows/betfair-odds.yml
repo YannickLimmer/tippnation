@@ -1,8 +1,6 @@
 name: Betfair odds polling
 
 on:
-  schedule:
-    - cron: "45 * * * *"
   workflow_dispatch:
     inputs:
       force:
