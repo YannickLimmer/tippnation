@@ -7,8 +7,12 @@ TippNation is a small Streamlit betting game for a closed World Cup group.
 - `app.py` contains the Streamlit UI only.
 - `tippnation/db.py` supports local SQLite and Turso/libSQL.
 - `tippnation/admin.py` exposes Python admin functions for database initialization, result updates, and point computation.
+- `tippnation/odds_cli.py` refreshes Betfair odds from a local machine and writes snapshots to the configured database.
 - `tippnation/scoring.py` contains the point rules and stores computed results in the database.
-- `data/events/world_cup_2026.json` is the checked-in World Cup 2026 event bundle. It contains rules, teams, and fixture templates, but no user data.
+- `data/events/international_friendlies_trial_2026.json` is the temporary default trial event.
+- `data/events/world_cup_2026.json` is the World Cup 2026 event bundle. It remains checked in for switching back after the trial.
+- `docs/` contains user-facing manuals loaded by the app help tab.
+- `legacy/` contains the old CSV/Sheets implementation.
 
 ## Secrets
 
@@ -24,6 +28,10 @@ Password = "user-password"
 [turso]
 url = "libsql://tippster-yannicklimmer.aws-eu-west-1.turso.io"
 auth_token = "..."
+
+[betfair]
+app_key = "..."
+session_token = "..."
 ```
 
 Environment variables `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` are also supported. If no Turso URL is configured, the app uses `data/tippnation.sqlite3`.
@@ -36,6 +44,33 @@ streamlit run app.py
 ```
 
 The app initializes and syncs the configured event and secret-backed users on startup. Admin actions in the app can update match results and recompute point tables into SQLite/Turso.
+
+## Local Odds Refresh
+
+Streamlit Cloud cannot reach Betfair reliably, so market odds are refreshed locally
+and persisted to Turso. The deployed app only reads the latest stored odds and locks
+the most recent pre-kickoff snapshot after each match starts.
+
+Refresh odds for the current default event using the normal cadence:
+
+```bash
+python -m tippnation.odds_cli
+```
+
+Force a refresh for the next stage/round:
+
+```bash
+python -m tippnation.odds_cli --force
+```
+
+Force every upcoming match in the event:
+
+```bash
+python -m tippnation.odds_cli --force --all-upcoming
+```
+
+After the friendlies trial, switch `DEFAULT_EVENT_CONFIG` in `tippnation/config.py`
+back to `data/events/world_cup_2026.json`.
 
 ## Local Euro 2024 Replay
 

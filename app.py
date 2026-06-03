@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import os
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -13,7 +12,7 @@ from tippnation.admin import compute_and_store_points, initialize_database, set_
 from tippnation.config import DEFAULT_EVENT_CONFIG, EventConfig, load_event_config
 from tippnation.db import Database, connect
 from tippnation.i18n import LANGUAGES, t
-from tippnation.odds import DISPLAY_SCORE_MAX, keep_betfair_session_alive, odds_refresh_decision, refresh_market_odds_if_due
+from tippnation.odds import DISPLAY_SCORE_MAX
 from tippnation.repository import (
     list_players,
     load_bets,
@@ -22,6 +21,7 @@ from tippnation.repository import (
     load_locked_score_probabilities,
     load_matches,
     load_points,
+    lock_latest_pregame_odds,
     set_favorite,
     upsert_bets,
 )
@@ -36,7 +36,6 @@ from tippnation.replay import (
 from tippnation.scoring import compute_points
 from tippnation.secrets import (
     get_admin_password,
-    get_betfair_settings,
     get_database_settings,
     get_user_password,
     list_auth_users,
@@ -57,22 +56,6 @@ def get_database(config_path: str, replay_snapshot: str | None) -> Database:
 @st.cache_data(show_spinner=False)
 def get_event_config(path: str) -> EventConfig:
     return load_event_config(Path(path))
-
-
-@st.cache_data(show_spinner=False, ttl=3600)
-def cached_betfair_keep_alive(settings_cache_key: str) -> dict[str, object]:
-    settings = get_betfair_settings()
-    if settings is None:
-        return {"status": "NOT_CONFIGURED"}
-    return keep_betfair_session_alive(settings)
-
-
-def betfair_settings_cache_key() -> str | None:
-    settings = get_betfair_settings()
-    if settings is None:
-        return None
-    raw = f"{settings.app_key}:{settings.session_token}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def now_utc() -> datetime:
@@ -136,34 +119,12 @@ def bootstrap(db: Database, config: EventConfig) -> list[str]:
     return list_players(db)
 
 
-def render_market_odds_refresh(db: Database, config: EventConfig, replay: ReplaySettings | None, language: str) -> None:
+def render_market_odds_status(db: Database, config: EventConfig, replay: ReplaySettings | None, language: str) -> None:
     if replay:
         return
-    matches = load_matches(db, config.event_id)
-    settings = get_betfair_settings()
-    if settings is not None:
-        keep_alive_key = betfair_settings_cache_key()
-        if keep_alive_key is not None:
-            keep_alive_result = cached_betfair_keep_alive(keep_alive_key)
-            if str(keep_alive_result.get("status", "")).upper() not in {"SUCCESS", "NOT_CONFIGURED"}:
-                st.warning(t(language, "betfair_keep_alive_failed").format(status=keep_alive_result.get("status", "unknown")))
-    current_time = now_utc()
-    decision = odds_refresh_decision(db, config.event_id, matches, current_time)
-    if settings and config.betfair_competition_id and decision.due:
-        with st.status(t(language, "market_odds_updating"), expanded=False):
-            st.write(decision.reason)
-            result = refresh_market_odds_if_due(db, config, settings, matches, current_time)
-    else:
-        result = refresh_market_odds_if_due(db, config, settings, matches, current_time)
-
-    if result.already_running:
-        st.caption(t(language, "market_odds_running"))
-    elif result.error:
-        st.warning(t(language, "market_odds_failed").format(error=result.error[:240]))
-    elif result.attempted and result.updated_matches:
-        st.success(t(language, "market_odds_updated").format(matches=result.updated_matches))
-    elif result.locked_matches:
-        st.caption(t(language, "market_odds_locked").format(matches=result.locked_matches))
+    locked_matches = lock_latest_pregame_odds(db, config.event_id, now_utc())
+    if locked_matches:
+        st.caption(t(language, "market_odds_locked").format(matches=locked_matches))
 
 
 def sidebar_auth(players: list[str], language: str, replay: ReplaySettings | None = None) -> str | None:
@@ -181,14 +142,14 @@ def sidebar_auth(players: list[str], language: str, replay: ReplaySettings | Non
         )
         if st.session_state.get("username"):
             st.caption(f"{t(language, 'logged_in_as')}: {st.session_state['username']}")
-            if st.button(t(language, "logout"), use_container_width=True):
+            if st.button(t(language, "logout"), width="stretch"):
                 st.session_state.pop("username", None)
                 st.rerun()
             return str(st.session_state["username"])
 
         username = st.selectbox(t(language, "username"), options=["", *players])
         password = st.text_input(t(language, "password"), type="password")
-        if st.button(t(language, "login"), use_container_width=True):
+        if st.button(t(language, "login"), width="stretch"):
             replay_login = bool(replay and username and password == REPLAY_USER_PASSWORD)
             if username and (replay_login or verify_password(password, get_user_password(username))):
                 st.session_state["username"] = username
@@ -227,7 +188,7 @@ def render_favorite_picker(db: Database, config: EventConfig, username: str, lan
     with cols[1]:
         st.write("")
         st.write("")
-        if st.button(t(language, "save_favorite"), use_container_width=True):
+        if st.button(t(language, "save_favorite"), width="stretch"):
             set_favorite(db, config.event_id, username, choice)
             st.success(t(language, "favorite_saved"))
 
@@ -296,7 +257,7 @@ def render_score_probability_table(db: Database, config: EventConfig, match: pd.
         fig.update_yaxes(autorange="reversed", dtick=1)
         fig.update_traces(hovertemplate=f"{match['team_a_name']} %{{y}} - %{{x}} {match['team_b_name']}<br>Probability: %{{z:.2%}}<extra></extra>")
         fig.update_layout(margin={"l": 8, "r": 8, "t": 8, "b": 8}, coloraxis_colorbar_tickformat=".0%")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 
 def render_bets(db: Database, config: EventConfig, players: list[str], username: str | None, language: str) -> None:
@@ -375,7 +336,7 @@ def render_bets(db: Database, config: EventConfig, players: list[str], username:
                 )
 
     st.caption(f"{t(language, 'factor_budget')}: {factor_sum} / {max_factor_sum}")
-    if editable_rows and st.button(t(language, "submit_bets"), type="primary", use_container_width=True):
+    if editable_rows and st.button(t(language, "submit_bets"), type="primary", width="stretch"):
         if factor_sum > max_factor_sum:
             st.warning(f"{t(language, 'factor_budget')}: {factor_sum} / {max_factor_sum}")
             return
@@ -389,7 +350,7 @@ def render_entries(db: Database, config: EventConfig, players: list[str], langua
     if favorites_locked(config) and not favorites.empty:
         favorites["team"] = favorites["team_id"].map(config.teams)
         st.markdown(f"### {t(language, 'favorites')}")
-        st.dataframe(favorites[["username", "team"]], hide_index=True, use_container_width=True)
+        st.dataframe(favorites[["username", "team"]], hide_index=True, width="stretch")
 
     matches = localize_match_times(load_matches(db, config.event_id), config)
     bets = load_bets(db, config.event_id)
@@ -410,7 +371,7 @@ def render_entries(db: Database, config: EventConfig, players: list[str], langua
         values="bet",
         aggfunc="first",
     ).reset_index().sort_values("kickoff_local", ascending=False)
-    st.dataframe(display, hide_index=True, use_container_width=True)
+    st.dataframe(display, hide_index=True, width="stretch")
 
 
 def render_stats(db: Database, config: EventConfig, language: str) -> None:
@@ -426,7 +387,7 @@ def render_stats(db: Database, config: EventConfig, language: str) -> None:
         .sort_values("final", ascending=False)
     )
     standings.insert(0, "rank", standings["final"].rank(method="min", ascending=False).astype(int))
-    st.dataframe(standings, hide_index=True, use_container_width=True)
+    st.dataframe(standings, hide_index=True, width="stretch")
 
     st.markdown(f"### {t(language, 'points_by_match')}")
     by_match = points.pivot_table(
@@ -435,7 +396,7 @@ def render_stats(db: Database, config: EventConfig, language: str) -> None:
         values="final",
         aggfunc="sum",
     ).reset_index().sort_values("kickoff_utc", ascending=False)
-    st.dataframe(by_match, hide_index=True, use_container_width=True)
+    st.dataframe(by_match, hide_index=True, width="stretch")
 
     progression = points.sort_values(["kickoff_utc"]).copy()
     progression["running"] = progression.groupby("username")["final"].cumsum()
@@ -489,12 +450,12 @@ def render_heatmaps(db: Database, config: EventConfig, players: list[str], langu
         labels={"x": "Team B goals", "y": "Team A goals", "color": "Points"},
     )
     fig.update_xaxes(side="top")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def render_help(language: str) -> None:
-    manual = "MANUAL_DE.md" if language == "de" else "MANUAL_EN.md"
-    instructions = "Instructions_DE.md" if language == "de" else "Instructions_EN.md"
+    manual = "docs/MANUAL_DE.md" if language == "de" else "docs/MANUAL_EN.md"
+    instructions = "docs/Instructions_DE.md" if language == "de" else "docs/Instructions_EN.md"
     for path in (manual, instructions):
         if Path(path).exists():
             with st.expander(path):
@@ -513,7 +474,7 @@ def render_admin(
     if not (replay_admin or verify_password(password, get_admin_password())):
         st.stop()
 
-    if st.button(t(language, "initialize_db"), use_container_width=True):
+    if st.button(t(language, "initialize_db"), width="stretch"):
         initialize_database(db, config, players)
         st.success("Database synced.")
 
@@ -522,7 +483,7 @@ def render_admin(
     edited = st.data_editor(
         editable,
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         column_config={
             "result_a": st.column_config.NumberColumn("Result A", min_value=0, max_value=30, step=1),
             "result_b": st.column_config.NumberColumn("Result B", min_value=0, max_value=30, step=1),
@@ -530,10 +491,10 @@ def render_admin(
         },
     )
     cols = st.columns(2)
-    if cols[0].button(t(language, "set_results"), use_container_width=True):
+    if cols[0].button(t(language, "set_results"), width="stretch"):
         set_match_results(db, config.event_id, edited)
         st.success(t(language, "results_saved"))
-    if cols[1].button(t(language, "recompute_points"), type="primary", use_container_width=True):
+    if cols[1].button(t(language, "recompute_points"), type="primary", width="stretch"):
         points = compute_and_store_points(db, config)
         st.success(f"{t(language, 'points_saved')} ({len(points)} rows)")
 
@@ -561,7 +522,7 @@ def main() -> None:
             f"{replay.snapshot.label}: {replay.snapshot.description} "
             f"The local scratch database is {display_path(replay.db_path)} and resets when this replay is restarted."
         )
-    render_market_odds_refresh(db, config, replay, language)
+    render_market_odds_status(db, config, replay, language)
     tabs = st.tabs(
         [
             t(language, "bets"),

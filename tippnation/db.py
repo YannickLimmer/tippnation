@@ -13,6 +13,7 @@ class Database(Protocol):
     def execute(self, sql: str, params: Sequence[Any] = ()) -> None: ...
     def query(self, sql: str, params: Sequence[Any] = ()) -> list[dict[str, Any]]: ...
     def executemany(self, sql: str, rows: Iterable[Sequence[Any]]) -> None: ...
+    def close(self) -> None: ...
 
 
 class SqliteDatabase:
@@ -35,6 +36,9 @@ class SqliteDatabase:
     def executemany(self, sql: str, rows: Iterable[Sequence[Any]]) -> None:
         with self.connection:
             self.connection.executemany(sql, [tuple(row) for row in rows])
+
+    def close(self) -> None:
+        self.connection.close()
 
 
 class LibsqlDatabase:
@@ -67,8 +71,12 @@ class LibsqlDatabase:
         return rows
 
     def executemany(self, sql: str, rows: Iterable[Sequence[Any]]) -> None:
-        for row in rows:
-            self.execute(sql, row)
+        statements = [(sql, list(row)) for row in rows]
+        for index in range(0, len(statements), 100):
+            self.client.batch(statements[index : index + 100])
+
+    def close(self) -> None:
+        self.client.close()
 
 
 def connect(settings: DatabaseSettings) -> Database:
