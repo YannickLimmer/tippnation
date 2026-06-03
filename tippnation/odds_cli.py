@@ -4,6 +4,7 @@ import argparse
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -26,6 +27,7 @@ class LocalOddsUpdateResult:
     updated_matches: int
     locked_matches: int
     unmatched_matches: int
+    stage: str = "unknown"
     skipped_reason: str | None = None
     error: str | None = None
 
@@ -36,15 +38,26 @@ def update_betting_odds(
     force: bool = False,
     all_upcoming: bool = False,
     now: datetime | None = None,
+    verbose: bool = True,
 ) -> LocalOddsUpdateResult:
     current_time = now or datetime.now(timezone.utc)
+    _log(verbose, "stage=config_load")
+    _log(verbose, f"config_path={config_path}")
     config = load_event_config(config_path)
+    _log(verbose, f"event_id={config.event_id}")
+    _log(verbose, f"mode=odds_refresh force={force} all_upcoming={all_upcoming} now={current_time.isoformat()}")
+    _log(verbose, "stage=database_connect")
     db = connect(get_database_settings())
     try:
+        _log(verbose, "stage=database_schema")
         ensure_schema(db)
         sync_event_config(db, config)
 
+        _log(verbose, "stage=pregame_lock")
         locked_before = lock_latest_pregame_odds(db, config.event_id, current_time)
+        _log(verbose, f"locked_before_refresh={locked_before}")
+
+        _log(verbose, "stage=betfair_settings")
         settings = get_betfair_settings()
         if settings is None:
             return LocalOddsUpdateResult(
@@ -52,10 +65,13 @@ def update_betting_odds(
                 updated_matches=0,
                 locked_matches=locked_before,
                 unmatched_matches=0,
+                stage="betfair_settings",
                 skipped_reason="Betfair credentials are not configured.",
             )
+        _log_betfair_settings(verbose, settings)
 
         try:
+            _log(verbose, "stage=betfair_cert_login")
             settings = login_betfair_with_certificate(settings)
         except Exception as exc:
             return LocalOddsUpdateResult(
@@ -63,46 +79,74 @@ def update_betting_odds(
                 updated_matches=0,
                 locked_matches=locked_before,
                 unmatched_matches=0,
+                stage="betfair_cert_login",
                 error=str(exc),
             )
+        _log(verbose, f"betfair_session_token_acquired={bool(settings.session_token)}")
 
+        _log(verbose, "stage=betfair_keep_alive")
         keep_alive = keep_betfair_session_alive(settings)
+        _log_keep_alive(verbose, keep_alive)
         if str(keep_alive.get("status", "")).upper() != "SUCCESS":
             return LocalOddsUpdateResult(
                 attempted=False,
                 updated_matches=0,
                 locked_matches=locked_before,
                 unmatched_matches=0,
+                stage="betfair_keep_alive",
                 skipped_reason=f"Betfair keep-alive failed: {keep_alive.get('status', 'unknown')}",
             )
 
+        _log(verbose, "stage=matches_load")
         matches = load_matches(db, config.event_id)
+        _log(verbose, f"matches_loaded={len(matches)}")
         if force:
             target_match_ids = _target_match_ids(matches, current_time, all_upcoming)
-            updated, unmatched = refresh_betfair_odds(db, config, settings, matches, target_match_ids, current_time)
+            _log(verbose, f"stage=betfair_refresh target_matches={len(target_match_ids)}")
+            try:
+                updated, unmatched = refresh_betfair_odds(db, config, settings, matches, target_match_ids, current_time)
+            except Exception as exc:
+                return LocalOddsUpdateResult(
+                    attempted=True,
+                    updated_matches=0,
+                    locked_matches=locked_before,
+                    unmatched_matches=len(target_match_ids),
+                    stage="betfair_refresh",
+                    error=str(exc),
+                )
             locked_after = lock_latest_pregame_odds(db, config.event_id, current_time)
             return LocalOddsUpdateResult(
                 attempted=True,
                 updated_matches=updated,
                 locked_matches=locked_before + locked_after,
                 unmatched_matches=unmatched,
+                stage="betfair_refresh",
             )
 
+        _log(verbose, "stage=refresh_decision")
         decision = odds_refresh_decision(db, config.event_id, matches, current_time)
+        _log(verbose, f"refresh_due={decision.due}")
+        _log(verbose, f"refresh_reason={decision.reason}")
+        _log(verbose, f"refresh_target_matches={len(decision.target_match_ids)}")
+        _log(verbose, "stage=betfair_refresh_if_due")
         result = refresh_market_odds_if_due(db, config, settings, matches, current_time)
         return LocalOddsUpdateResult(
             attempted=result.attempted,
             updated_matches=result.updated_matches,
             locked_matches=locked_before + result.locked_matches,
             unmatched_matches=result.unmatched_matches,
+            stage="betfair_refresh_if_due",
             skipped_reason=result.skipped_reason or (None if decision.due else decision.reason),
             error=result.error,
         )
     finally:
         db.close()
+        _log(verbose, "stage=database_close")
 
 
-def check_betfair_auth() -> LocalOddsUpdateResult:
+def check_betfair_auth(*, verbose: bool = True) -> LocalOddsUpdateResult:
+    _log(verbose, "mode=auth_check")
+    _log(verbose, "stage=betfair_settings")
     settings = get_betfair_settings()
     if settings is None:
         return LocalOddsUpdateResult(
@@ -110,9 +154,12 @@ def check_betfair_auth() -> LocalOddsUpdateResult:
             updated_matches=0,
             locked_matches=0,
             unmatched_matches=0,
+            stage="betfair_settings",
             skipped_reason="Betfair credentials are not configured.",
         )
+    _log_betfair_settings(verbose, settings)
     try:
+        _log(verbose, "stage=betfair_cert_login")
         settings = login_betfair_with_certificate(settings)
     except Exception as exc:
         return LocalOddsUpdateResult(
@@ -120,15 +167,20 @@ def check_betfair_auth() -> LocalOddsUpdateResult:
             updated_matches=0,
             locked_matches=0,
             unmatched_matches=0,
+            stage="betfair_cert_login",
             error=str(exc),
         )
+    _log(verbose, f"betfair_session_token_acquired={bool(settings.session_token)}")
+    _log(verbose, "stage=betfair_keep_alive")
     keep_alive = keep_betfair_session_alive(settings)
+    _log_keep_alive(verbose, keep_alive)
     if str(keep_alive.get("status", "")).upper() != "SUCCESS":
         return LocalOddsUpdateResult(
             attempted=False,
             updated_matches=0,
             locked_matches=0,
             unmatched_matches=0,
+            stage="betfair_keep_alive",
             skipped_reason=f"Betfair keep-alive failed: {keep_alive.get('status', 'unknown')}",
         )
     return LocalOddsUpdateResult(
@@ -136,6 +188,7 @@ def check_betfair_auth() -> LocalOddsUpdateResult:
         updated_matches=0,
         locked_matches=0,
         unmatched_matches=0,
+        stage="betfair_keep_alive",
     )
 
 
@@ -164,6 +217,45 @@ def _strict_failure_reason(result: LocalOddsUpdateResult) -> str | None:
     if "Betfair credentials" in reason or "Betfair keep-alive failed" in reason:
         return reason
     return None
+
+
+def _log(enabled: bool, message: str) -> None:
+    if enabled:
+        print(message, flush=True)
+
+
+def _log_betfair_settings(enabled: bool, settings: Any) -> None:
+    _log(enabled, f"betfair_app_key_configured={bool(settings.app_key)}")
+    _log(enabled, f"betfair_username_configured={bool(settings.username)}")
+    _log(enabled, f"betfair_password_configured={bool(settings.password)}")
+    _log(enabled, f"betfair_session_token_configured={bool(settings.session_token)}")
+    _log(enabled, f"betfair_cert_paths_configured={bool(settings.cert_path and settings.key_path)}")
+    _log(enabled, f"betfair_cert_base64_configured={bool(settings.cert_base64 and settings.key_base64)}")
+    auth_method = "certificate" if settings.has_certificate_login else "session_token"
+    _log(enabled, f"betfair_auth_method={auth_method}")
+
+
+def _log_keep_alive(enabled: bool, keep_alive: dict[str, Any]) -> None:
+    _log(enabled, f"betfair_keep_alive_status={keep_alive.get('status', 'unknown')}")
+    if "http_status" in keep_alive:
+        _log(enabled, f"betfair_keep_alive_http_status={keep_alive['http_status']}")
+    if "reason" in keep_alive:
+        _log(enabled, f"betfair_keep_alive_reason={keep_alive['reason']}")
+    if "body" in keep_alive:
+        _log(enabled, f"betfair_keep_alive_body={keep_alive['body']}")
+
+
+def _print_result(result: LocalOddsUpdateResult) -> None:
+    print("stage=result")
+    print(f"result_stage={result.stage}")
+    print(f"attempted={result.attempted}")
+    print(f"updated_matches={result.updated_matches}")
+    print(f"unmatched_matches={result.unmatched_matches}")
+    print(f"locked_matches={result.locked_matches}")
+    if result.skipped_reason:
+        print(f"skipped_reason={result.skipped_reason}")
+    if result.error:
+        print(f"error={result.error}")
 
 
 def main() -> None:
@@ -209,14 +301,7 @@ def main() -> None:
             all_upcoming=bool(args.all_upcoming),
             now=_parse_now(args.now),
         )
-    print(f"attempted={result.attempted}")
-    print(f"updated_matches={result.updated_matches}")
-    print(f"unmatched_matches={result.unmatched_matches}")
-    print(f"locked_matches={result.locked_matches}")
-    if result.skipped_reason:
-        print(f"skipped_reason={result.skipped_reason}")
-    if result.error:
-        print(f"error={result.error}")
+    _print_result(result)
     if args.strict and (failure_reason := _strict_failure_reason(result)):
         raise SystemExit(failure_reason)
 

@@ -15,6 +15,11 @@ on:
         required: false
         default: false
         type: boolean
+      auth_check:
+        description: "Only test Betfair certificate login and keep-alive; do not touch Turso"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -61,17 +66,38 @@ jobs:
       - name: Restore Betfair certs
         run: |
           set -euo pipefail
+          echo "::group::Betfair cert restore"
+          echo "individual_cert_secret_present=$([[ -n "${BETFAIR_CERT_BASE64:-}" ]] && echo true || echo false)"
+          echo "individual_key_secret_present=$([[ -n "${BETFAIR_KEY_BASE64:-}" ]] && echo true || echo false)"
           if [[ -n "${BETFAIR_CERT_BASE64:-}" && -n "${BETFAIR_KEY_BASE64:-}" ]]; then
             python -c 'import base64, os; from pathlib import Path; decode=lambda value: base64.b64decode("".join(value.split()).replace("-", "+").replace("_", "/") + ("=" * ((-len("".join(value.split()).replace("-", "+").replace("_", "/"))) % 4)), validate=True); certs=Path("certs"); certs.mkdir(exist_ok=True); (certs / "betfair.crt").write_bytes(decode(os.environ["BETFAIR_CERT_BASE64"])); key=certs / "betfair.key"; key.write_bytes(decode(os.environ["BETFAIR_KEY_BASE64"])); key.chmod(0o600)'
             echo "BETFAIR_CERT_PATH=certs/betfair.crt" >> "$GITHUB_ENV"
             echo "BETFAIR_KEY_PATH=certs/betfair.key" >> "$GITHUB_ENV"
+            echo "cert_files_restored=true"
+          else
+            echo "cert_files_restored=false"
+            echo "The CLI can still use cert_base64/key_base64 from TIPPNATION_SECRETS if present."
           fi
+          echo "::endgroup::"
 
-      - name: Poll Betfair and save odds
+      - name: Run Betfair odds command
         run: |
           set -euo pipefail
 
+          echo "::group::Safe secret preflight"
+          echo "packed_tippnation_secret_present=$([[ -n "${TIPPNATION_SECRETS_TOML:-}" ]] && echo true || echo false)"
+          echo "turso_url_present=$([[ -n "${TURSO_DATABASE_URL:-}" ]] && echo true || echo false)"
+          echo "turso_token_present=$([[ -n "${TURSO_AUTH_TOKEN:-}${TURSO_TOKEN:-}" ]] && echo true || echo false)"
+          echo "betfair_app_key_present=$([[ -n "${BETFAIR_APP_KEY:-}${BF_TOKEN:-}" ]] && echo true || echo false)"
+          echo "betfair_username_present=$([[ -n "${BETFAIR_USERNAME:-}" ]] && echo true || echo false)"
+          echo "betfair_password_present=$([[ -n "${BETFAIR_PASSWORD:-}" ]] && echo true || echo false)"
+          echo "betfair_session_present=$([[ -n "${BETFAIR_SESSION:-}${BF_SESSION:-}" ]] && echo true || echo false)"
+          echo "::endgroup::"
+
           args=(--strict)
+          if [[ "${{ github.event.inputs.auth_check }}" == "true" ]]; then
+            args+=(--auth-check)
+          fi
           if [[ "${{ github.event.inputs.force }}" == "true" ]]; then
             args+=(--force)
           fi
@@ -79,4 +105,7 @@ jobs:
             args+=(--all-upcoming)
           fi
 
+          echo "::group::tippnation.odds_cli"
+          echo "command=python -m tippnation.odds_cli ${args[*]}"
           python -m tippnation.odds_cli "${args[@]}"
+          echo "::endgroup::"

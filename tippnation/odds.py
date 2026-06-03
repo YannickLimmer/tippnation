@@ -158,11 +158,21 @@ class BetfairClient:
             },
             method="POST",
         )
-        with urllib.request.urlopen(request, timeout=45, context=self.context) as response:
-            data = json.loads(response.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(request, timeout=45, context=self.context) as response:
+                body = response.read().decode("utf-8", errors="replace")
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Betfair exchange {method} failed: HTTP {exc.code} {_sanitize_betfair_body(body)}") from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"Betfair exchange {method} failed: {exc.reason}") from exc
+        try:
+            data = json.loads(body)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"Betfair exchange {method} returned non-JSON response: {_sanitize_betfair_body(body)}") from exc
         first = data[0]
         if "error" in first:
-            raise RuntimeError(json.dumps(first["error"], sort_keys=True))
+            raise RuntimeError(f"Betfair exchange {method} returned API error: {_sanitize_betfair_body(json.dumps(first['error'], sort_keys=True))}")
         return first.get("result")
 
     def list_competition_events(
@@ -245,11 +255,13 @@ def keep_betfair_session_alive(settings: BetfairSettings) -> dict[str, Any]:
             body = response.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
-        return {"status": "HTTP_ERROR", "http_status": exc.code, "body": body[:500]}
+        return {"status": "HTTP_ERROR", "http_status": exc.code, "body": _sanitize_betfair_body(body)}
+    except urllib.error.URLError as exc:
+        return {"status": "URL_ERROR", "reason": str(exc.reason)}
     try:
         data = json.loads(body)
     except json.JSONDecodeError:
-        return {"status": "NON_JSON_RESPONSE", "body": body[:500]}
+        return {"status": "NON_JSON_RESPONSE", "body": _sanitize_betfair_body(body)}
     return data if isinstance(data, dict) else {"status": "UNKNOWN_RESPONSE", "body": data}
 
 
@@ -282,20 +294,27 @@ def login_betfair_with_certificate(settings: BetfairSettings) -> BetfairSettings
                 body = response.read().decode("utf-8", errors="replace")
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"Betfair certificate login failed: HTTP {exc.code} {body[:500]}") from exc
+            raise RuntimeError(f"Betfair certificate login failed: HTTP {exc.code} {_sanitize_betfair_body(body)}") from exc
         except urllib.error.URLError as exc:
             raise RuntimeError(f"Betfair certificate login failed: {exc.reason}") from exc
 
     try:
         data = json.loads(body)
     except json.JSONDecodeError as exc:
-        raise RuntimeError(f"Betfair certificate login returned non-JSON response: {body[:500]}") from exc
+        raise RuntimeError(f"Betfair certificate login returned non-JSON response: {_sanitize_betfair_body(body)}") from exc
 
     session_token = data.get("sessionToken") if isinstance(data, dict) else None
     if not session_token:
         login_status = data.get("loginStatus") if isinstance(data, dict) else "UNKNOWN_RESPONSE"
         raise RuntimeError(f"Betfair certificate login failed: {login_status}")
     return replace(settings, session_token=str(session_token))
+
+
+def _sanitize_betfair_body(body: str, limit: int = 500) -> str:
+    redacted = re.sub(r'("sessionToken"\s*:\s*")[^"]+(")', r"\1<redacted>\2", body)
+    redacted = re.sub(r'("X-Authentication"\s*:\s*")[^"]+(")', r"\1<redacted>\2", redacted)
+    redacted = redacted.replace("\n", " ").replace("\r", " ")
+    return redacted[:limit]
 
 
 @dataclass(frozen=True)

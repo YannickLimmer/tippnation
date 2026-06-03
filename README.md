@@ -93,6 +93,7 @@ python -m tippnation.odds_cli --auth-check --strict
 
 The workflow can also be started manually from the GitHub Actions tab:
 
+- Set `auth_check` to test only Betfair certificate login and keep-alive without touching Turso.
 - Leave `force` off to use the normal one-hour/five-hour/final-hour cadence.
 - Set `force` to refresh the next upcoming stage immediately.
 - Set both `force` and `all_upcoming` to refresh every upcoming match in the configured event.
