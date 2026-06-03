@@ -9,7 +9,7 @@ import plotly.express as px
 import streamlit as st
 
 from tippnation.admin import compute_and_store_points, initialize_database, set_match_results
-from tippnation.config import DEFAULT_EVENT_CONFIG, EventConfig, load_event_config
+from tippnation.config import DEFAULT_EVENT_CONFIG, EventConfig, config_as_json, load_event_config
 from tippnation.db import Database, connect
 from tippnation.i18n import LANGUAGES, t
 from tippnation.odds import DISPLAY_SCORE_MAX
@@ -18,9 +18,11 @@ from tippnation.repository import (
     load_bets,
     load_display_score_probabilities,
     load_favorites,
+    load_match_bet_usernames,
     load_locked_score_probabilities,
     load_matches,
     load_points,
+    load_user_bets,
     lock_latest_pregame_odds,
     set_favorite,
     upsert_bets,
@@ -56,6 +58,89 @@ def get_database(config_path: str, replay_snapshot: str | None) -> Database:
 @st.cache_data(show_spinner=False)
 def get_event_config(path: str) -> EventConfig:
     return load_event_config(Path(path))
+
+
+def database_cache_key(db: Database) -> str:
+    return f"{type(db).__name__}:{id(db)}"
+
+
+def now_bucket(seconds: int) -> int:
+    return int(now_utc().timestamp() // seconds)
+
+
+@st.cache_data(show_spinner=False, ttl=300)
+def bootstrap_cached(
+    _db: Database,
+    db_key: str,
+    _config: EventConfig,
+    config_json: str,
+    usernames: tuple[str, ...],
+) -> tuple[str, ...]:
+    initialize_database(_db, _config, list(usernames))
+    return tuple(list_players(_db))
+
+
+@st.cache_data(show_spinner=False, ttl=30)
+def cached_load_matches(_db: Database, db_key: str, event_id: str) -> pd.DataFrame:
+    return load_matches(_db, event_id)
+
+
+@st.cache_data(show_spinner=False, ttl=10)
+def cached_load_bets(_db: Database, db_key: str, event_id: str) -> pd.DataFrame:
+    return load_bets(_db, event_id)
+
+
+@st.cache_data(show_spinner=False, ttl=10)
+def cached_load_user_bets(_db: Database, db_key: str, event_id: str, username: str) -> pd.DataFrame:
+    return load_user_bets(_db, event_id, username)
+
+
+@st.cache_data(show_spinner=False, ttl=10)
+def cached_load_match_bet_usernames(_db: Database, db_key: str, event_id: str, match_id: str) -> list[str]:
+    return load_match_bet_usernames(_db, event_id, match_id)
+
+
+@st.cache_data(show_spinner=False, ttl=10)
+def cached_load_favorites(_db: Database, db_key: str, event_id: str) -> pd.DataFrame:
+    return load_favorites(_db, event_id)
+
+
+@st.cache_data(show_spinner=False, ttl=10)
+def cached_load_points(_db: Database, db_key: str, event_id: str) -> pd.DataFrame:
+    return load_points(_db, event_id)
+
+
+@st.cache_data(show_spinner=False, ttl=60)
+def cached_load_locked_score_probabilities(_db: Database, db_key: str, event_id: str) -> pd.DataFrame:
+    return load_locked_score_probabilities(_db, event_id)
+
+
+@st.cache_data(show_spinner=False, ttl=60)
+def cached_load_display_score_probabilities(
+    _db: Database,
+    db_key: str,
+    event_id: str,
+    match_id: str,
+    current_bucket: int,
+) -> tuple[pd.DataFrame, dict[str, object] | None]:
+    return load_display_score_probabilities(_db, event_id, match_id, now_utc())
+
+
+@st.cache_data(show_spinner=False, ttl=30)
+def cached_lock_latest_pregame_odds(_db: Database, db_key: str, event_id: str, current_bucket: int) -> int:
+    return lock_latest_pregame_odds(_db, event_id, now_utc())
+
+
+def clear_read_caches() -> None:
+    cached_load_matches.clear()
+    cached_load_bets.clear()
+    cached_load_user_bets.clear()
+    cached_load_match_bet_usernames.clear()
+    cached_load_favorites.clear()
+    cached_load_points.clear()
+    cached_load_locked_score_probabilities.clear()
+    cached_load_display_score_probabilities.clear()
+    cached_lock_latest_pregame_odds.clear()
 
 
 def now_utc() -> datetime:
@@ -114,16 +199,17 @@ def default_match_date(matches: pd.DataFrame, config: EventConfig) -> date | Non
 
 def bootstrap(db: Database, config: EventConfig) -> list[str]:
     secrets = load_secret_sources()
-    usernames = list_auth_users(secrets)
-    initialize_database(db, config, usernames)
-    return list_players(db)
+    usernames = tuple(list_auth_users(secrets))
+    return list(bootstrap_cached(db, database_cache_key(db), config, config_as_json(config), usernames))
 
 
 def render_market_odds_status(db: Database, config: EventConfig, replay: ReplaySettings | None, language: str) -> None:
     if replay:
         return
-    locked_matches = lock_latest_pregame_odds(db, config.event_id, now_utc())
+    locked_matches = cached_lock_latest_pregame_odds(db, database_cache_key(db), config.event_id, now_bucket(30))
     if locked_matches:
+        cached_load_locked_score_probabilities.clear()
+        cached_load_display_score_probabilities.clear()
         st.caption(t(language, "market_odds_locked").format(matches=locked_matches))
 
 
@@ -159,7 +245,7 @@ def sidebar_auth(players: list[str], language: str, replay: ReplaySettings | Non
 
 
 def render_favorite_picker(db: Database, config: EventConfig, username: str, language: str) -> None:
-    favorites = load_favorites(db, config.event_id)
+    favorites = cached_load_favorites(db, database_cache_key(db), config.event_id)
     selected = None
     if not favorites.empty:
         row = favorites[favorites["username"] == username]
@@ -190,17 +276,18 @@ def render_favorite_picker(db: Database, config: EventConfig, username: str, lan
         st.write("")
         if st.button(t(language, "save_favorite"), width="stretch"):
             set_favorite(db, config.event_id, username, choice)
+            cached_load_favorites.clear()
             st.success(t(language, "favorite_saved"))
 
 
 def render_next_match_status(db: Database, config: EventConfig, players: list[str], language: str) -> None:
-    matches = localize_match_times(load_matches(db, config.event_id), config)
+    db_key = database_cache_key(db)
+    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id), config)
     upcoming = matches[matches["kickoff_utc"] >= pd.Timestamp(now_utc())]
     if upcoming.empty:
         return
     next_match = upcoming.iloc[0]
-    bets = load_bets(db, config.event_id)
-    match_bets = set() if bets.empty else set(bets[bets["match_id"] == next_match["match_id"]]["username"])
+    match_bets = set(cached_load_match_bet_usernames(db, db_key, config.event_id, str(next_match["match_id"])))
     submitted = [player for player in players if player in match_bets]
     missing = [player for player in players if player not in match_bets]
     with st.container(border=True):
@@ -220,7 +307,13 @@ def render_next_match_status(db: Database, config: EventConfig, players: list[st
 
 
 def render_score_probability_table(db: Database, config: EventConfig, match: pd.Series, language: str) -> None:
-    probabilities, metadata = load_display_score_probabilities(db, config.event_id, str(match["match_id"]), now_utc())
+    probabilities, metadata = cached_load_display_score_probabilities(
+        db,
+        database_cache_key(db),
+        config.event_id,
+        str(match["match_id"]),
+        now_bucket(60),
+    )
     if probabilities.empty:
         return
 
@@ -261,99 +354,114 @@ def render_score_probability_table(db: Database, config: EventConfig, match: pd.
 
 
 def render_bets(db: Database, config: EventConfig, players: list[str], username: str | None, language: str) -> None:
-    render_next_match_status(db, config, players, language)
+    status_placeholder = st.empty()
+
+    def render_status() -> None:
+        with status_placeholder.container():
+            render_next_match_status(db, config, players, language)
+
     if username is None:
+        render_status()
         st.info(t(language, "login_required"))
         return
 
-    feedback_key = f"bets_saved_message_{config.event_id}_{username}"
-    if feedback_key in st.session_state:
-        st.success(st.session_state.pop(feedback_key))
-
     render_favorite_picker(db, config, username, language)
-    matches = localize_match_times(load_matches(db, config.event_id), config)
+    db_key = database_cache_key(db)
+    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id), config)
     selected_date = st.date_input(t(language, "select_date"), value=default_match_date(matches, config))
     selected = matches[matches["date"] == selected_date].copy()
     if selected.empty:
+        render_status()
         st.info(t(language, "no_matches"))
         return
 
-    bets = load_bets(db, config.event_id)
-    own_bets = pd.DataFrame()
-    if not bets.empty:
-        own_bets = bets[bets["username"] == username].set_index("match_id")
+    bets = cached_load_user_bets(db, db_key, config.event_id, username)
+    own_bets = bets.set_index("match_id") if not bets.empty else pd.DataFrame()
 
     editable_rows = []
     factor_sum = 0
     max_factor_sum = 0
-    for match in selected.itertuples(index=False):
-        rule = config.rules.get(str(match.round_name), config.rules.get("knockout", config.rules["group"]))
-        max_factor_sum += rule.max_factor
-        is_locked = match.kickoff_utc.to_pydatetime() <= now_utc()
-        existing = own_bets.loc[match.match_id] if match.match_id in own_bets.index else None
-        with st.container(border=True):
-            st.markdown(
-                f"**{match.team_a_name} vs {match.team_b_name}** · "
-                f"{match.kickoff_local.strftime('%H:%M')} · {match.round_name}"
-            )
-            cols = st.columns([1, 1, 2])
-            score_a = cols[0].number_input(
-                match.team_a_name,
-                min_value=0,
-                max_value=30,
-                value=int(existing["score_a"]) if existing is not None else 0,
-                disabled=is_locked,
-                key=f"score_a_{match.match_id}",
-            )
-            score_b = cols[1].number_input(
-                match.team_b_name,
-                min_value=0,
-                max_value=30,
-                value=int(existing["score_b"]) if existing is not None else 0,
-                disabled=is_locked,
-                key=f"score_b_{match.match_id}",
-            )
-            factor = cols[2].slider(
-                "Factor",
-                min_value=1,
-                max_value=rule.max_factor,
-                value=int(existing["factor"]) if existing is not None else 1,
-                disabled=is_locked,
-                key=f"factor_{match.match_id}",
-            )
-            factor_sum += int(factor)
-            if is_locked:
-                st.caption(t(language, "past_locked"))
-            else:
-                render_score_probability_table(db, config, pd.Series(match._asdict()), language)
-                editable_rows.append(
-                    {
-                        "match_id": match.match_id,
-                        "score_a": int(score_a),
-                        "score_b": int(score_b),
-                        "factor": int(factor),
-                    }
+    form_key = f"bets_form_{config.event_id}_{username}_{selected_date.isoformat()}"
+    with st.form(form_key):
+        for match in selected.itertuples(index=False):
+            rule = config.rules.get(str(match.round_name), config.rules.get("knockout", config.rules["group"]))
+            max_factor_sum += rule.max_factor
+            is_locked = match.kickoff_utc.to_pydatetime() <= now_utc()
+            existing = own_bets.loc[match.match_id] if match.match_id in own_bets.index else None
+            with st.container(border=True):
+                st.markdown(
+                    f"**{match.team_a_name} vs {match.team_b_name}** · "
+                    f"{match.kickoff_local.strftime('%H:%M')} · {match.round_name}"
                 )
+                cols = st.columns([1, 1, 2])
+                score_a = cols[0].number_input(
+                    match.team_a_name,
+                    min_value=0,
+                    max_value=30,
+                    value=int(existing["score_a"]) if existing is not None else 0,
+                    disabled=is_locked,
+                    key=f"score_a_{match.match_id}",
+                )
+                score_b = cols[1].number_input(
+                    match.team_b_name,
+                    min_value=0,
+                    max_value=30,
+                    value=int(existing["score_b"]) if existing is not None else 0,
+                    disabled=is_locked,
+                    key=f"score_b_{match.match_id}",
+                )
+                factor = cols[2].slider(
+                    "Factor",
+                    min_value=1,
+                    max_value=rule.max_factor,
+                    value=int(existing["factor"]) if existing is not None else 1,
+                    disabled=is_locked,
+                    key=f"factor_{match.match_id}",
+                )
+                factor_sum += int(factor)
+                if is_locked:
+                    st.caption(t(language, "past_locked"))
+                else:
+                    render_score_probability_table(db, config, pd.Series(match._asdict()), language)
+                    editable_rows.append(
+                        {
+                            "match_id": match.match_id,
+                            "score_a": int(score_a),
+                            "score_b": int(score_b),
+                            "factor": int(factor),
+                        }
+                    )
 
-    st.caption(f"{t(language, 'factor_budget')}: {factor_sum} / {max_factor_sum}")
-    if editable_rows and st.button(t(language, "submit_bets"), type="primary", width="stretch"):
+        st.caption(f"{t(language, 'factor_budget')}: {factor_sum} / {max_factor_sum}")
+        submitted = st.form_submit_button(
+            t(language, "submit_bets"),
+            type="primary",
+            disabled=not editable_rows,
+            width="stretch",
+        )
+
+    if editable_rows and submitted:
         if factor_sum > max_factor_sum:
             st.warning(f"{t(language, 'factor_budget')}: {factor_sum} / {max_factor_sum}")
             return
         upsert_bets(db, config.event_id, username, editable_rows)
-        st.session_state[feedback_key] = t(language, "bets_saved")
-        st.rerun()
+        cached_load_bets.clear()
+        cached_load_user_bets.clear()
+        cached_load_match_bet_usernames.clear()
+        st.success(t(language, "bets_saved"))
+    render_status()
 
 
 def render_entries(db: Database, config: EventConfig, players: list[str], language: str) -> None:
-    favorites = load_favorites(db, config.event_id)
+    db_key = database_cache_key(db)
+    favorites = cached_load_favorites(db, db_key, config.event_id)
     if favorites_locked(config) and not favorites.empty:
         favorites["team"] = favorites["team_id"].map(config.teams)
         st.markdown(f"### {t(language, 'favorites')}")
         st.dataframe(favorites[["username", "team"]], hide_index=True, width="stretch")
 
-    matches = localize_match_times(load_matches(db, config.event_id), config)
-    bets = load_bets(db, config.event_id)
+    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id), config)
+    bets = cached_load_bets(db, db_key, config.event_id)
     if bets.empty:
         st.info(t(language, "no_matches"))
         return
@@ -375,7 +483,7 @@ def render_entries(db: Database, config: EventConfig, players: list[str], langua
 
 
 def render_stats(db: Database, config: EventConfig, language: str) -> None:
-    points = load_points(db, config.event_id)
+    points = cached_load_points(db, database_cache_key(db), config.event_id)
     if points.empty:
         st.info(t(language, "no_points"))
         return
@@ -405,7 +513,8 @@ def render_stats(db: Database, config: EventConfig, language: str) -> None:
 
 
 def render_heatmaps(db: Database, config: EventConfig, players: list[str], language: str) -> None:
-    matches = localize_match_times(load_matches(db, config.event_id), config)
+    db_key = database_cache_key(db)
+    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id), config)
     visible_matches = matches[matches["kickoff_utc"] < pd.Timestamp(now_utc())]
     if visible_matches.empty:
         st.info(t(language, "visible_after_kickoff"))
@@ -421,9 +530,9 @@ def render_heatmaps(db: Database, config: EventConfig, players: list[str], langu
     )
     player = st.selectbox("Player", options=players)
     opponent = st.selectbox("Opponent", options=["", *[name for name in players if name != player]])
-    bets = load_bets(db, config.event_id)
-    favorites = load_favorites(db, config.event_id)
-    market_probabilities = load_locked_score_probabilities(db, config.event_id)
+    bets = cached_load_bets(db, db_key, config.event_id)
+    favorites = cached_load_favorites(db, db_key, config.event_id)
+    market_probabilities = cached_load_locked_score_probabilities(db, db_key, config.event_id)
     match_data = matches[matches["match_id"] == selected_match_id].copy()
     if bets.empty or bets[bets["match_id"] == selected_match_id].empty:
         st.info(t(language, "no_matches"))
@@ -476,9 +585,11 @@ def render_admin(
 
     if st.button(t(language, "initialize_db"), width="stretch"):
         initialize_database(db, config, players)
+        clear_read_caches()
+        bootstrap_cached.clear()
         st.success("Database synced.")
 
-    matches = load_matches(db, config.event_id)
+    matches = cached_load_matches(db, database_cache_key(db), config.event_id)
     editable = matches[["match_id", "team_a_name", "team_b_name", "kickoff_utc", "result_a", "result_b", "status"]].copy()
     edited = st.data_editor(
         editable,
@@ -493,9 +604,15 @@ def render_admin(
     cols = st.columns(2)
     if cols[0].button(t(language, "set_results"), width="stretch"):
         set_match_results(db, config.event_id, edited)
+        cached_load_matches.clear()
+        cached_load_points.clear()
         st.success(t(language, "results_saved"))
     if cols[1].button(t(language, "recompute_points"), type="primary", width="stretch"):
         points = compute_and_store_points(db, config)
+        cached_load_bets.clear()
+        cached_load_user_bets.clear()
+        cached_load_match_bet_usernames.clear()
+        cached_load_points.clear()
         st.success(f"{t(language, 'points_saved')} ({len(points)} rows)")
 
 

@@ -115,6 +115,30 @@ def load_bets(db: Database, event_id: str) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def load_user_bets(db: Database, event_id: str, username: str) -> pd.DataFrame:
+    rows = db.query(
+        """
+        SELECT *
+        FROM bets
+        WHERE event_id = ? AND username = ?
+        """,
+        (event_id, username),
+    )
+    return pd.DataFrame(rows)
+
+
+def load_match_bet_usernames(db: Database, event_id: str, match_id: str) -> list[str]:
+    rows = db.query(
+        """
+        SELECT username
+        FROM bets
+        WHERE event_id = ? AND match_id = ?
+        """,
+        (event_id, match_id),
+    )
+    return [str(row["username"]) for row in rows]
+
+
 def load_points(db: Database, event_id: str) -> pd.DataFrame:
     rows = db.query(
         """
