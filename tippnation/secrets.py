@@ -82,7 +82,9 @@ def get_database_settings(source: Mapping[str, Any] | None = None) -> DatabaseSe
     )
     token = (
         os.getenv("TURSO_AUTH_TOKEN")
+        or os.getenv("TURSO_TOKEN")
         or secrets.get("TURSO_AUTH_TOKEN")
+        or secrets.get("TURSO_TOKEN")
         or secrets.get("auth_token")
         or secrets.get("token")
         or _get_nested(secrets, ("turso", "auth_token"))

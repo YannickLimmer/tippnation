@@ -43,6 +43,11 @@ class LibsqlDatabase:
             import libsql_client
         except ImportError as exc:
             raise RuntimeError("Install libsql-client to use Turso/libSQL.") from exc
+        # libsql-client 0.3.x maps libsql:// to the WebSocket transport, which Turso
+        # currently rejects for this database with HTTP 400. The HTTPS transport works
+        # against the same host and keeps existing libsql:// secrets deployable.
+        if url.startswith("libsql://"):
+            url = "https://" + url.removeprefix("libsql://")
         self.client = libsql_client.create_client_sync(url=url, auth_token=auth_token)
 
     def execute(self, sql: str, params: Sequence[Any] = ()) -> None:
