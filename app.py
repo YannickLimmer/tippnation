@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -12,10 +13,13 @@ from tippnation.admin import compute_and_store_points, initialize_database, set_
 from tippnation.config import DEFAULT_EVENT_CONFIG, EventConfig, load_event_config
 from tippnation.db import Database, connect
 from tippnation.i18n import LANGUAGES, t
+from tippnation.odds import DISPLAY_SCORE_MAX, keep_betfair_session_alive, odds_refresh_decision, refresh_market_odds_if_due
 from tippnation.repository import (
     list_players,
     load_bets,
+    load_display_score_probabilities,
     load_favorites,
+    load_locked_score_probabilities,
     load_matches,
     load_points,
     set_favorite,
@@ -32,6 +36,7 @@ from tippnation.replay import (
 from tippnation.scoring import compute_points
 from tippnation.secrets import (
     get_admin_password,
+    get_betfair_settings,
     get_database_settings,
     get_user_password,
     list_auth_users,
@@ -52,6 +57,22 @@ def get_database(config_path: str, replay_snapshot: str | None) -> Database:
 @st.cache_data(show_spinner=False)
 def get_event_config(path: str) -> EventConfig:
     return load_event_config(Path(path))
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def cached_betfair_keep_alive(settings_cache_key: str) -> dict[str, object]:
+    settings = get_betfair_settings()
+    if settings is None:
+        return {"status": "NOT_CONFIGURED"}
+    return keep_betfair_session_alive(settings)
+
+
+def betfair_settings_cache_key() -> str | None:
+    settings = get_betfair_settings()
+    if settings is None:
+        return None
+    raw = f"{settings.app_key}:{settings.session_token}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def now_utc() -> datetime:
@@ -113,6 +134,36 @@ def bootstrap(db: Database, config: EventConfig) -> list[str]:
     usernames = list_auth_users(secrets)
     initialize_database(db, config, usernames)
     return list_players(db)
+
+
+def render_market_odds_refresh(db: Database, config: EventConfig, replay: ReplaySettings | None, language: str) -> None:
+    if replay:
+        return
+    matches = load_matches(db, config.event_id)
+    settings = get_betfair_settings()
+    if settings is not None:
+        keep_alive_key = betfair_settings_cache_key()
+        if keep_alive_key is not None:
+            keep_alive_result = cached_betfair_keep_alive(keep_alive_key)
+            if str(keep_alive_result.get("status", "")).upper() not in {"SUCCESS", "NOT_CONFIGURED"}:
+                st.warning(t(language, "betfair_keep_alive_failed").format(status=keep_alive_result.get("status", "unknown")))
+    current_time = now_utc()
+    decision = odds_refresh_decision(db, config.event_id, matches, current_time)
+    if settings and config.event_id == "world_cup_2026" and decision.due:
+        with st.status(t(language, "market_odds_updating"), expanded=False):
+            st.write(decision.reason)
+            result = refresh_market_odds_if_due(db, config, settings, matches, current_time)
+    else:
+        result = refresh_market_odds_if_due(db, config, settings, matches, current_time)
+
+    if result.already_running:
+        st.caption(t(language, "market_odds_running"))
+    elif result.error:
+        st.warning(t(language, "market_odds_failed").format(error=result.error[:240]))
+    elif result.attempted and result.updated_matches:
+        st.success(t(language, "market_odds_updated").format(matches=result.updated_matches))
+    elif result.locked_matches:
+        st.caption(t(language, "market_odds_locked").format(matches=result.locked_matches))
 
 
 def sidebar_auth(players: list[str], language: str, replay: ReplaySettings | None = None) -> str | None:
@@ -207,6 +258,47 @@ def render_next_match_status(db: Database, config: EventConfig, players: list[st
             st.caption(", ".join(submitted))
 
 
+def render_score_probability_table(db: Database, config: EventConfig, match: pd.Series, language: str) -> None:
+    probabilities, metadata = load_display_score_probabilities(db, config.event_id, str(match["match_id"]), now_utc())
+    if probabilities.empty:
+        return
+
+    display = probabilities[
+        (probabilities["score_a"] <= DISPLAY_SCORE_MAX) & (probabilities["score_b"] <= DISPLAY_SCORE_MAX)
+    ].copy()
+    if display.empty:
+        return
+    matrix = (
+        display.pivot_table(index="score_a", columns="score_b", values="probability", aggfunc="sum")
+        .fillna(0.0)
+        .sort_index()
+        .sort_index(axis=1)
+    )
+    captured = metadata.get("captured_at") if metadata else None
+    provider = metadata.get("provider") if metadata else None
+    with st.expander(t(language, "market_score_probabilities"), expanded=False):
+        if captured:
+            st.caption(t(language, "market_score_snapshot").format(provider=provider or "market", captured=str(captured)[:16]))
+        fig = px.imshow(
+            matrix.values,
+            text_auto=".1%",
+            x=[int(value) for value in matrix.columns],
+            y=[int(value) for value in matrix.index],
+            color_continuous_scale="YlGnBu",
+            aspect="auto",
+            labels={
+                "x": f"{match['team_b_name']} goals",
+                "y": f"{match['team_a_name']} goals",
+                "color": "Probability",
+            },
+        )
+        fig.update_xaxes(side="top", dtick=1)
+        fig.update_yaxes(autorange="reversed", dtick=1)
+        fig.update_traces(hovertemplate=f"{match['team_a_name']} %{{y}} - %{{x}} {match['team_b_name']}<br>Probability: %{{z:.2%}}<extra></extra>")
+        fig.update_layout(margin={"l": 8, "r": 8, "t": 8, "b": 8}, coloraxis_colorbar_tickformat=".0%")
+        st.plotly_chart(fig, use_container_width=True)
+
+
 def render_bets(db: Database, config: EventConfig, players: list[str], username: str | None, language: str) -> None:
     render_next_match_status(db, config, players, language)
     if username is None:
@@ -272,6 +364,7 @@ def render_bets(db: Database, config: EventConfig, players: list[str], username:
             if is_locked:
                 st.caption(t(language, "past_locked"))
             else:
+                render_score_probability_table(db, config, pd.Series(match._asdict()), language)
                 editable_rows.append(
                     {
                         "match_id": match.match_id,
@@ -369,6 +462,7 @@ def render_heatmaps(db: Database, config: EventConfig, players: list[str], langu
     opponent = st.selectbox("Opponent", options=["", *[name for name in players if name != player]])
     bets = load_bets(db, config.event_id)
     favorites = load_favorites(db, config.event_id)
+    market_probabilities = load_locked_score_probabilities(db, config.event_id)
     match_data = matches[matches["match_id"] == selected_match_id].copy()
     if bets.empty or bets[bets["match_id"] == selected_match_id].empty:
         st.info(t(language, "no_matches"))
@@ -381,7 +475,7 @@ def render_heatmaps(db: Database, config: EventConfig, players: list[str], langu
             simulated = match_data.copy()
             simulated["result_a"] = result_a
             simulated["result_b"] = result_b
-            points, _ = compute_points(simulated, bets[bets["match_id"] == selected_match_id], favorites, config)
+            points, _ = compute_points(simulated, bets[bets["match_id"] == selected_match_id], favorites, config, market_probabilities)
             player_points = int(points[points["username"] == player]["final"].sum())
             opponent_points = int(points[points["username"] == opponent]["final"].sum()) if opponent else 0
             row.append(player_points - opponent_points)
@@ -467,6 +561,7 @@ def main() -> None:
             f"{replay.snapshot.label}: {replay.snapshot.description} "
             f"The local scratch database is {display_path(replay.db_path)} and resets when this replay is restarted."
         )
+    render_market_odds_refresh(db, config, replay, language)
     tabs = st.tabs(
         [
             t(language, "bets"),

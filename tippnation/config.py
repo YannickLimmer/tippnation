@@ -92,38 +92,58 @@ def _expand_matches(raw: dict) -> list[dict[str, object]]:
         raise ValueError("Event configs must define explicit matches unless they use the World Cup 2026 expander.")
 
     matches: list[dict[str, object]] = []
-    sort_order = 1
-    group_date_plan = raw["schedule_template"]["group_stage_dates"]
-    pairings = [
-        ("matchday_1", [("1", "2"), ("3", "4")]),
-        ("matchday_2", [("1", "3"), ("4", "2")]),
-        ("matchday_3", [("4", "1"), ("2", "3")]),
-    ]
-    for group in "ABCDEFGHIJKL":
-        group_dates = group_date_plan[group]
-        fixture_number = 1
-        for matchday_index, (matchday, matchday_pairings) in enumerate(pairings):
-            for pairing_index, (a_pos, b_pos) in enumerate(matchday_pairings):
-                date = group_dates[matchday_index]
-                if isinstance(date, list):
-                    date = date[min(pairing_index, len(date) - 1)]
-                matches.append(
-                    {
-                        "match_id": f"{group}{fixture_number}",
-                        "sort_order": sort_order,
-                        "kickoff_utc": f"{date}T18:00:00+00:00",
-                        "stage": "group",
-                        "round_name": "group",
-                        "group_name": group,
-                        "team_a_id": f"{group}{a_pos}",
-                        "team_b_id": f"{group}{b_pos}",
-                        "team_a_name": f"Group {group} #{a_pos}",
-                        "team_b_name": f"Group {group} #{b_pos}",
-                        "venue": None,
-                    }
-                )
-                fixture_number += 1
-                sort_order += 1
+    explicit_group_fixtures = raw.get("group_stage_fixtures")
+    if explicit_group_fixtures:
+        for item in explicit_group_fixtures:
+            matches.append(
+                {
+                    "match_id": str(item["match_id"]),
+                    "sort_order": int(item["sort_order"]),
+                    "kickoff_utc": str(item["kickoff_utc"]),
+                    "stage": "group",
+                    "round_name": "group",
+                    "group_name": item.get("group_name"),
+                    "team_a_id": str(item["team_a_id"]),
+                    "team_b_id": str(item["team_b_id"]),
+                    "team_a_name": str(raw["teams"][item["team_a_id"]]),
+                    "team_b_name": str(raw["teams"][item["team_b_id"]]),
+                    "venue": item.get("venue"),
+                }
+            )
+        sort_order = max(int(item["sort_order"]) for item in explicit_group_fixtures) + 1
+    else:
+        sort_order = 1
+        group_date_plan = raw["schedule_template"]["group_stage_dates"]
+        pairings = [
+            ("matchday_1", [("1", "2"), ("3", "4")]),
+            ("matchday_2", [("1", "3"), ("4", "2")]),
+            ("matchday_3", [("4", "1"), ("2", "3")]),
+        ]
+        for group in "ABCDEFGHIJKL":
+            group_dates = group_date_plan[group]
+            fixture_number = 1
+            for matchday_index, (matchday, matchday_pairings) in enumerate(pairings):
+                for pairing_index, (a_pos, b_pos) in enumerate(matchday_pairings):
+                    date = group_dates[matchday_index]
+                    if isinstance(date, list):
+                        date = date[min(pairing_index, len(date) - 1)]
+                    matches.append(
+                        {
+                            "match_id": f"{group}{fixture_number}",
+                            "sort_order": sort_order,
+                            "kickoff_utc": f"{date}T18:00:00+00:00",
+                            "stage": "group",
+                            "round_name": "group",
+                            "group_name": group,
+                            "team_a_id": f"{group}{a_pos}",
+                            "team_b_id": f"{group}{b_pos}",
+                            "team_a_name": f"Group {group} #{a_pos}",
+                            "team_b_name": f"Group {group} #{b_pos}",
+                            "venue": None,
+                        }
+                    )
+                    fixture_number += 1
+                    sort_order += 1
 
     knockout_rounds = [
         ("R32", "round_of_32", "Round of 32", "2026-06-28", 16),
@@ -131,7 +151,7 @@ def _expand_matches(raw: dict) -> list[dict[str, object]]:
         ("QF", "quarterfinal", "Quarterfinal", "2026-07-09", 4),
         ("SF", "semifinal", "Semifinal", "2026-07-14", 2),
         ("3P", "third_place", "Third place", "2026-07-18", 1),
-        ("F", "final", "Final", "2026-07-19", 1),
+        ("FIN", "final", "Final", "2026-07-19", 1),
     ]
     for prefix, round_name, label, first_date, count in knockout_rounds:
         first = datetime.fromisoformat(f"{first_date}T18:00:00+00:00")

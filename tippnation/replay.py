@@ -10,6 +10,7 @@ import pandas as pd
 from .admin import compute_and_store_points, initialize_database, set_match_results
 from .config import EventConfig, ROOT
 from .db import Database, SqliteDatabase
+from .odds import seed_synthetic_replay_odds
 
 
 EURO_2024_CONFIG = ROOT / "data" / "events" / "euro_2024.json"
@@ -153,6 +154,7 @@ def _seed_euro_2024(db: Database, config: EventConfig, replay_now: datetime) -> 
     _seed_favorites(db, config)
     _seed_results(db, config, source_rows, replay_now)
     _seed_bets(db, config, source_rows, replay_now)
+    seed_synthetic_replay_odds(db, config, replay_now)
     compute_and_store_points(db, config)
 
 

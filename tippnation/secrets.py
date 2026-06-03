@@ -21,6 +21,12 @@ class DatabaseSettings:
     auth_token: str | None
 
 
+@dataclass(frozen=True)
+class BetfairSettings:
+    app_key: str
+    session_token: str
+
+
 def _mapping_to_dict(value: Any) -> dict[str, Any]:
     if isinstance(value, Mapping):
         return {str(key): _mapping_to_dict(item) if isinstance(item, Mapping) else item for key, item in value.items()}
@@ -90,6 +96,29 @@ def get_database_settings(source: Mapping[str, Any] | None = None) -> DatabaseSe
     if not url:
         url = "data/tippnation.sqlite3"
     return DatabaseSettings(url=str(url), auth_token=str(token) if token else None)
+
+
+def get_betfair_settings(source: Mapping[str, Any] | None = None) -> BetfairSettings | None:
+    secrets = source or load_secret_sources()
+    app_key = (
+        os.getenv("BETFAIR_APP_KEY")
+        or os.getenv("BF_TOKEN")
+        or secrets.get("BETFAIR_APP_KEY")
+        or secrets.get("BF_TOKEN")
+        or _get_nested(secrets, ("betfair", "app_key"))
+        or _get_nested(secrets, ("betfair", "token"))
+    )
+    session_token = (
+        os.getenv("BETFAIR_SESSION")
+        or os.getenv("BF_SESSION")
+        or secrets.get("BETFAIR_SESSION")
+        or secrets.get("BF_SESSION")
+        or _get_nested(secrets, ("betfair", "session"))
+        or _get_nested(secrets, ("betfair", "session_token"))
+    )
+    if not app_key or not session_token:
+        return None
+    return BetfairSettings(app_key=str(app_key), session_token=str(session_token))
 
 
 def get_admin_password(source: Mapping[str, Any] | None = None) -> str | None:

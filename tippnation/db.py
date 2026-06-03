@@ -148,10 +148,62 @@ SCHEMA = (
         PRIMARY KEY (event_id, match_id, username)
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS odds_snapshots (
+        snapshot_id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL,
+        match_id TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        provider_event_id TEXT,
+        captured_at TEXT NOT NULL,
+        kickoff_utc TEXT NOT NULL,
+        market_count INTEGER NOT NULL,
+        score_max INTEGER NOT NULL,
+        diagnostics_json TEXT NOT NULL,
+        markets_json TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_odds_snapshots_event_match_captured
+    ON odds_snapshots (event_id, match_id, captured_at)
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS score_probabilities (
+        snapshot_id TEXT NOT NULL,
+        event_id TEXT NOT NULL,
+        match_id TEXT NOT NULL,
+        score_a INTEGER NOT NULL,
+        score_b INTEGER NOT NULL,
+        probability REAL NOT NULL,
+        PRIMARY KEY (snapshot_id, score_a, score_b)
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_score_probabilities_event_match
+    ON score_probabilities (event_id, match_id)
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS pregame_odds_locks (
+        event_id TEXT NOT NULL,
+        match_id TEXT NOT NULL,
+        snapshot_id TEXT NOT NULL,
+        captured_at TEXT NOT NULL,
+        locked_at TEXT NOT NULL,
+        PRIMARY KEY (event_id, match_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS odds_refresh_locks (
+        lock_key TEXT PRIMARY KEY,
+        acquired_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        owner TEXT NOT NULL
+    )
+    """,
 )
 
 
 def ensure_schema(db: Database) -> None:
     for statement in SCHEMA:
         db.execute(statement)
-

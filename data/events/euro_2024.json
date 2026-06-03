@@ -8,32 +8,32 @@
     "group": {
       "favorite": 6,
       "max_factor": 6,
-      "exotic": 3
+      "exotic": 6
     },
     "round_of_16": {
       "favorite": 10,
       "max_factor": 11,
-      "exotic": 5
+      "exotic": 10
     },
     "quarterfinal": {
       "favorite": 12,
       "max_factor": 15,
-      "exotic": 8
+      "exotic": 16
     },
     "semifinal": {
       "favorite": 16,
       "max_factor": 10,
-      "exotic": 10
+      "exotic": 20
     },
     "final": {
       "favorite": 20,
       "max_factor": 12,
-      "exotic": 12
+      "exotic": 24
     },
     "knockout": {
       "favorite": 12,
       "max_factor": 11,
-      "exotic": 6
+      "exotic": 12
     }
   },
   "teams": {

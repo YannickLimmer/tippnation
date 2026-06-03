@@ -11,6 +11,10 @@ from .config import EventConfig, RuleConfig
 
 TO_RANK = [8, 7, 6, 5, 4]
 PROBABILITIES = [0.1, 0.2, 0.4, 0.2, 0.1]
+MARKET_EXOTIC_ALPHA = 0.6
+MARKET_EXOTIC_Z_MAX = 3.0
+MARKET_EXOTIC_MIN_CLOSENESS = 0.35
+EPSILON = 1e-9
 
 
 def _rule_for_row(config: EventConfig, round_name: str) -> RuleConfig:
@@ -42,7 +46,80 @@ def build_match_data(matches: pd.DataFrame, bets: pd.DataFrame, favorites: pd.Da
     return df
 
 
-def score_rows(df: pd.DataFrame, config: EventConfig) -> pd.DataFrame:
+def _closeness(pred_a: float, pred_b: float, result_a: float, result_b: float) -> float:
+    score_dist = abs(pred_a - result_a) + abs(pred_b - result_b)
+    diff_dist = abs((pred_a - pred_b) - (result_a - result_b))
+    return float(0.7 * max(1 - score_dist / 4, 0) + 0.3 * max(1 - diff_dist / 3, 0))
+
+
+def _old_exotic(scored: pd.DataFrame, config: EventConfig) -> pd.Series:
+    by_match = scored.groupby(["match_id"])
+    average_score_diff = by_match["score_diff"].transform("mean")
+    average_score_dist = by_match["score_dist"].transform("mean")
+    exotic_weight = scored["round_name"].apply(lambda value: _rule_for_row(config, str(value)).exotic)
+    return (
+        exotic_weight
+        * (
+            np.maximum((average_score_diff - scored["result_diff"]).abs() - (scored["result_diff"] - scored["score_diff"]).abs(), 0)
+            + np.maximum(average_score_dist - scored["score_dist"], 0)
+        )
+        / 2
+    ).astype(int)
+
+
+def _market_exotic(scored: pd.DataFrame, probabilities: pd.DataFrame, config: EventConfig) -> pd.Series:
+    exotic = _old_exotic(scored, config)
+    if probabilities.empty:
+        return exotic
+
+    probability_by_match = {
+        str(match_id): group[["score_a", "score_b", "probability"]].copy()
+        for match_id, group in probabilities.groupby("match_id")
+    }
+    for match_id, group in scored.groupby("match_id"):
+        probability_table = probability_by_match.get(str(match_id))
+        if probability_table is None or probability_table.empty:
+            continue
+
+        probability_table = probability_table.dropna(subset=["score_a", "score_b", "probability"])
+        probability_sum = float(probability_table["probability"].sum())
+        if probability_sum <= 0:
+            continue
+        probability_table = probability_table.copy()
+        probability_table["probability"] = probability_table["probability"].astype(float) / probability_sum
+
+        actual_closeness = group.apply(
+            lambda row: _closeness(row.score_a, row.score_b, row.result_a, row.result_b),
+            axis=1,
+        )
+        average_closeness = float(actual_closeness.mean())
+        round_name = str(group["round_name"].iloc[0])
+        weight = _rule_for_row(config, round_name).exotic
+
+        values: dict[int, int] = {}
+        for index, row in group.iterrows():
+            expected_values = probability_table.apply(
+                lambda score_row: _closeness(row.score_a, row.score_b, score_row.score_a, score_row.score_b),
+                axis=1,
+            )
+            mu = float((expected_values * probability_table["probability"]).sum())
+            variance = float((((expected_values - mu) ** 2) * probability_table["probability"]).sum())
+            sigma = float(np.sqrt(max(variance, 0)))
+            k_value = float(actual_closeness.loc[index])
+            if k_value < MARKET_EXOTIC_MIN_CLOSENESS:
+                market_score = 0.0
+            else:
+                z_score = min(max((k_value - mu) / (sigma + EPSILON), 0.0), MARKET_EXOTIC_Z_MAX)
+                market_score = z_score / MARKET_EXOTIC_Z_MAX
+            crowd_score = max(k_value - average_closeness, 0.0) / (1 - average_closeness + EPSILON)
+            values[index] = int(round(weight * (MARKET_EXOTIC_ALPHA * market_score + (1 - MARKET_EXOTIC_ALPHA) * crowd_score)))
+
+        for index, value in values.items():
+            exotic.at[index] = value
+    return exotic
+
+
+def score_rows(df: pd.DataFrame, config: EventConfig, market_probabilities: pd.DataFrame | None = None) -> pd.DataFrame:
     if df.empty:
         return df
     scored = df.copy()
@@ -70,18 +147,7 @@ def score_rows(df: pd.DataFrame, config: EventConfig) -> pd.DataFrame:
     scored["base"] += ((scored["score_a"] == scored["result_a"]) & (scored["score_b"] == scored["result_b"])).astype(int) * 2
     scored["fbase"] = scored["base"] * scored["factor"] + 3
 
-    by_match = scored.groupby(["match_id"])
-    scored["average_score_diff"] = by_match["score_diff"].transform("mean")
-    scored["average_score_dist"] = by_match["score_dist"].transform("mean")
-    exotic_weight = scored["round_name"].apply(lambda value: _rule_for_row(config, str(value)).exotic)
-    scored["exotic"] = (
-        exotic_weight
-        * (
-            np.maximum((scored["average_score_diff"] - scored["result_diff"]).abs() - (scored["result_diff"] - scored["score_diff"]).abs(), 0)
-            + np.maximum(scored["average_score_dist"] - scored["score_dist"], 0)
-        )
-        / 2
-    ).astype(int)
+    scored["exotic"] = _market_exotic(scored, market_probabilities if market_probabilities is not None else pd.DataFrame(), config)
 
     favorite_weight = scored["round_name"].apply(lambda value: _rule_for_row(config, str(value)).favorite)
     favorite_a = scored["favorite_team_id"] == scored["team_a_id"]
@@ -104,7 +170,11 @@ def score_rows(df: pd.DataFrame, config: EventConfig) -> pd.DataFrame:
     return scored
 
 
-def assign_missing_kanonenwilli(data: pd.DataFrame, config: EventConfig) -> tuple[pd.DataFrame, pd.DataFrame]:
+def assign_missing_kanonenwilli(
+    data: pd.DataFrame,
+    config: EventConfig,
+    market_probabilities: pd.DataFrame | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     if data.empty:
         return data, pd.DataFrame(columns=["match_id", "username", "kanonenwilli"])
 
@@ -116,7 +186,7 @@ def assign_missing_kanonenwilli(data: pd.DataFrame, config: EventConfig) -> tupl
             continue
 
         prior = working[(working["sort_order"] < int(working.loc[match_mask, "sort_order"].iloc[0])) & working["kanonenwilli"].notna()]
-        prior_scored = score_rows(prior, config)
+        prior_scored = score_rows(prior, config, market_probabilities)
         if prior_scored.empty or "final" not in prior_scored.columns:
             values = {username: 0 for username in working.loc[match_mask, "username"]}
         else:
@@ -142,13 +212,19 @@ def assign_missing_kanonenwilli(data: pd.DataFrame, config: EventConfig) -> tupl
     return working, pd.DataFrame(updates)
 
 
-def compute_points(matches: pd.DataFrame, bets: pd.DataFrame, favorites: pd.DataFrame, config: EventConfig) -> tuple[pd.DataFrame, pd.DataFrame]:
+def compute_points(
+    matches: pd.DataFrame,
+    bets: pd.DataFrame,
+    favorites: pd.DataFrame,
+    config: EventConfig,
+    market_probabilities: pd.DataFrame | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     data = build_match_data(matches, bets, favorites)
     if data.empty:
         return pd.DataFrame(), pd.DataFrame()
     completed = data.dropna(subset=["result_a", "result_b"])
-    completed, kw_updates = assign_missing_kanonenwilli(completed, config)
-    scored = score_rows(completed, config)
+    completed, kw_updates = assign_missing_kanonenwilli(completed, config, market_probabilities)
+    scored = score_rows(completed, config, market_probabilities)
     columns = [
         "match_id",
         "username",

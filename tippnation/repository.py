@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from typing import Any
@@ -12,6 +13,14 @@ from .db import Database
 
 def iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _iso(value: datetime | pd.Timestamp | str) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, pd.Timestamp):
+        return value.to_pydatetime().isoformat()
+    return value.isoformat()
 
 
 def sync_event_config(db: Database, config: EventConfig) -> None:
@@ -243,3 +252,242 @@ def update_kanonenwilli(db: Database, event_id: str, values: pd.DataFrame) -> No
         ],
     )
 
+
+def acquire_odds_refresh_lock(
+    db: Database,
+    lock_key: str,
+    owner: str,
+    acquired_at: datetime,
+    expires_at: datetime,
+) -> bool:
+    now_value = acquired_at.isoformat()
+    db.execute("DELETE FROM odds_refresh_locks WHERE lock_key = ? AND expires_at <= ?", (lock_key, now_value))
+    db.execute(
+        """
+        INSERT OR IGNORE INTO odds_refresh_locks (lock_key, acquired_at, expires_at, owner)
+        VALUES (?, ?, ?, ?)
+        """,
+        (lock_key, acquired_at.isoformat(), expires_at.isoformat(), owner),
+    )
+    rows = db.query("SELECT owner FROM odds_refresh_locks WHERE lock_key = ?", (lock_key,))
+    return bool(rows and rows[0]["owner"] == owner)
+
+
+def release_odds_refresh_lock(db: Database, lock_key: str, owner: str) -> None:
+    db.execute("DELETE FROM odds_refresh_locks WHERE lock_key = ? AND owner = ?", (lock_key, owner))
+
+
+def insert_odds_snapshot(
+    db: Database,
+    *,
+    event_id: str,
+    match_id: str,
+    snapshot_id: str,
+    provider: str,
+    provider_event_id: str | None,
+    captured_at: datetime,
+    kickoff_utc: datetime,
+    market_count: int,
+    score_max: int,
+    diagnostics: dict[str, Any],
+    markets: list[dict[str, Any]],
+    probabilities: pd.DataFrame,
+) -> None:
+    db.execute(
+        """
+        INSERT INTO odds_snapshots (
+            snapshot_id, event_id, match_id, provider, provider_event_id,
+            captured_at, kickoff_utc, market_count, score_max,
+            diagnostics_json, markets_json, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(snapshot_id) DO UPDATE SET
+            diagnostics_json = excluded.diagnostics_json,
+            markets_json = excluded.markets_json,
+            created_at = excluded.created_at
+        """,
+        (
+            snapshot_id,
+            event_id,
+            match_id,
+            provider,
+            provider_event_id,
+            captured_at.isoformat(),
+            kickoff_utc.isoformat(),
+            int(market_count),
+            int(score_max),
+            json.dumps(diagnostics, sort_keys=True),
+            json.dumps(markets, sort_keys=True),
+            iso_now(),
+        ),
+    )
+    db.execute("DELETE FROM score_probabilities WHERE snapshot_id = ?", (snapshot_id,))
+    if probabilities.empty:
+        return
+    db.executemany(
+        """
+        INSERT INTO score_probabilities (
+            snapshot_id, event_id, match_id, score_a, score_b, probability
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                snapshot_id,
+                event_id,
+                match_id,
+                int(row.score_a),
+                int(row.score_b),
+                float(row.probability),
+            )
+            for row in probabilities.itertuples(index=False)
+        ],
+    )
+
+
+def lock_latest_pregame_odds(db: Database, event_id: str, now: datetime) -> int:
+    matches = db.query(
+        """
+        SELECT match_id, kickoff_utc
+        FROM matches
+        WHERE event_id = ? AND kickoff_utc <= ?
+        """,
+        (event_id, now.isoformat()),
+    )
+    locked = 0
+    for match in matches:
+        existing = db.query(
+            "SELECT snapshot_id FROM pregame_odds_locks WHERE event_id = ? AND match_id = ?",
+            (event_id, match["match_id"]),
+        )
+        if existing:
+            continue
+        snapshots = db.query(
+            """
+            SELECT snapshot_id, captured_at
+            FROM odds_snapshots
+            WHERE event_id = ? AND match_id = ? AND captured_at < ?
+            ORDER BY captured_at DESC
+            LIMIT 1
+            """,
+            (event_id, match["match_id"], match["kickoff_utc"]),
+        )
+        if not snapshots:
+            continue
+        snapshot = snapshots[0]
+        db.execute(
+            """
+            INSERT INTO pregame_odds_locks (
+                event_id, match_id, snapshot_id, captured_at, locked_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(event_id, match_id) DO NOTHING
+            """,
+            (event_id, match["match_id"], snapshot["snapshot_id"], snapshot["captured_at"], now.isoformat()),
+        )
+        locked += 1
+    return locked
+
+
+def latest_odds_captured_at(db: Database, event_id: str, match_ids: list[str] | None = None) -> datetime | None:
+    params: list[Any] = [event_id]
+    clause = ""
+    if match_ids:
+        clause = f" AND match_id IN ({','.join('?' for _ in match_ids)})"
+        params.extend(match_ids)
+    rows = db.query(
+        f"""
+        SELECT MAX(captured_at) AS captured_at
+        FROM odds_snapshots
+        WHERE event_id = ?{clause}
+        """,
+        tuple(params),
+    )
+    value = rows[0].get("captured_at") if rows else None
+    if not value:
+        return None
+    return datetime.fromisoformat(str(value))
+
+
+def latest_odds_captured_at_for_match(db: Database, event_id: str, match_id: str) -> datetime | None:
+    rows = db.query(
+        """
+        SELECT MAX(captured_at) AS captured_at
+        FROM odds_snapshots
+        WHERE event_id = ? AND match_id = ?
+        """,
+        (event_id, match_id),
+    )
+    value = rows[0].get("captured_at") if rows else None
+    return datetime.fromisoformat(str(value)) if value else None
+
+
+def load_locked_score_probabilities(db: Database, event_id: str) -> pd.DataFrame:
+    rows = db.query(
+        """
+        SELECT
+            sp.event_id, sp.match_id, sp.score_a, sp.score_b, sp.probability,
+            l.snapshot_id, l.captured_at
+        FROM pregame_odds_locks l
+        JOIN score_probabilities sp ON sp.snapshot_id = l.snapshot_id
+        WHERE l.event_id = ?
+        """,
+        (event_id,),
+    )
+    return pd.DataFrame(rows)
+
+
+def load_display_score_probabilities(
+    db: Database,
+    event_id: str,
+    match_id: str,
+    now: datetime | None = None,
+) -> tuple[pd.DataFrame, dict[str, Any] | None]:
+    locked = db.query(
+        """
+        SELECT s.*
+        FROM pregame_odds_locks l
+        JOIN odds_snapshots s ON s.snapshot_id = l.snapshot_id
+        WHERE l.event_id = ? AND l.match_id = ?
+        LIMIT 1
+        """,
+        (event_id, match_id),
+    )
+    if locked:
+        snapshot = locked[0]
+    else:
+        params: list[Any] = [event_id, match_id]
+        now_clause = ""
+        if now is not None:
+            now_clause = " AND captured_at <= ?"
+            params.append(now.isoformat())
+        rows = db.query(
+            f"""
+            SELECT *
+            FROM odds_snapshots
+            WHERE event_id = ? AND match_id = ?{now_clause}
+            ORDER BY captured_at DESC
+            LIMIT 1
+            """,
+            tuple(params),
+        )
+        snapshot = rows[0] if rows else None
+    if snapshot is None:
+        return pd.DataFrame(columns=["score_a", "score_b", "probability"]), None
+
+    probability_rows = db.query(
+        """
+        SELECT score_a, score_b, probability
+        FROM score_probabilities
+        WHERE snapshot_id = ?
+        ORDER BY score_a, score_b
+        """,
+        (snapshot["snapshot_id"],),
+    )
+    metadata = dict(snapshot)
+    for key in ("diagnostics_json", "markets_json"):
+        try:
+            metadata[key.removesuffix("_json")] = json.loads(str(metadata[key]))
+        except (KeyError, json.JSONDecodeError, TypeError):
+            metadata[key.removesuffix("_json")] = None
+    return pd.DataFrame(probability_rows), metadata

@@ -4,4 +4,5 @@
 /data/Schedule.csv
 /data/tippnation.sqlite3
 /data/replay/
+/agent/
 *.pyc

@@ -7,6 +7,7 @@ from .db import Database, ensure_schema
 from .repository import (
     load_bets,
     load_favorites,
+    load_locked_score_probabilities,
     load_matches,
     replace_points,
     sync_event_config,
@@ -31,8 +32,8 @@ def compute_and_store_points(db: Database, config: EventConfig) -> pd.DataFrame:
     matches = load_matches(db, config.event_id)
     bets = load_bets(db, config.event_id)
     favorites = load_favorites(db, config.event_id)
-    points, kanonenwilli_updates = compute_points(matches, bets, favorites, config)
+    market_probabilities = load_locked_score_probabilities(db, config.event_id)
+    points, kanonenwilli_updates = compute_points(matches, bets, favorites, config, market_probabilities)
     update_kanonenwilli(db, config.event_id, kanonenwilli_updates)
     replace_points(db, config.event_id, points)
     return points
-
