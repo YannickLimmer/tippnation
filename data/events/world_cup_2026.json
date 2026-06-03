@@ -1,0 +1,122 @@
+{
+  "event_id": "world_cup_2026",
+  "name": "FIFA World Cup 2026",
+  "timezone": "Europe/Berlin",
+  "language_default": "en",
+  "kanonenwilli_seed": "world-cup-2026-v1",
+  "rules": {
+    "group": {
+      "favorite": 6,
+      "max_factor": 3,
+      "exotic": 3
+    },
+    "round_of_32": {
+      "favorite": 10,
+      "max_factor": 5,
+      "exotic": 5
+    },
+    "round_of_16": {
+      "favorite": 12,
+      "max_factor": 6,
+      "exotic": 6
+    },
+    "quarterfinal": {
+      "favorite": 12,
+      "max_factor": 8,
+      "exotic": 8
+    },
+    "semifinal": {
+      "favorite": 16,
+      "max_factor": 10,
+      "exotic": 10
+    },
+    "third_place": {
+      "favorite": 16,
+      "max_factor": 10,
+      "exotic": 10
+    },
+    "final": {
+      "favorite": 20,
+      "max_factor": 12,
+      "exotic": 12
+    },
+    "knockout": {
+      "favorite": 12,
+      "max_factor": 6,
+      "exotic": 6
+    }
+  },
+  "teams": {
+    "ALG": "Algeria",
+    "ARG": "Argentina",
+    "AUS": "Australia",
+    "AUT": "Austria",
+    "BEL": "Belgium",
+    "BIH": "Bosnia and Herzegovina",
+    "BRA": "Brazil",
+    "CAN": "Canada",
+    "CIV": "Côte d'Ivoire",
+    "COL": "Colombia",
+    "COD": "DR Congo",
+    "CPV": "Cape Verde",
+    "CRO": "Croatia",
+    "CUW": "Curaçao",
+    "CZE": "Czechia",
+    "ECU": "Ecuador",
+    "EGY": "Egypt",
+    "ENG": "England",
+    "FRA": "France",
+    "GER": "Germany",
+    "GHA": "Ghana",
+    "HAI": "Haiti",
+    "IRN": "Iran",
+    "IRQ": "Iraq",
+    "JOR": "Jordan",
+    "JPN": "Japan",
+    "KOR": "South Korea",
+    "KSA": "Saudi Arabia",
+    "MAR": "Morocco",
+    "MEX": "Mexico",
+    "NED": "Netherlands",
+    "NOR": "Norway",
+    "NZL": "New Zealand",
+    "PAN": "Panama",
+    "PAR": "Paraguay",
+    "POR": "Portugal",
+    "QAT": "Qatar",
+    "RSA": "South Africa",
+    "SCO": "Scotland",
+    "SEN": "Senegal",
+    "ESP": "Spain",
+    "SUI": "Switzerland",
+    "SWE": "Sweden",
+    "TUN": "Tunisia",
+    "TUR": "Türkiye",
+    "URU": "Uruguay",
+    "USA": "United States",
+    "UZB": "Uzbekistan",
+    "PO1": "Play-off winner 1",
+    "PO2": "Play-off winner 2",
+    "PO3": "Play-off winner 3",
+    "PO4": "Play-off winner 4",
+    "PO5": "Play-off winner 5",
+    "PO6": "Play-off winner 6"
+  },
+  "schedule_template": {
+    "source": "agent/wc.txt raw Wikipedia export, Match schedule section. Group page transclusions are intentionally represented as editable placeholders.",
+    "group_stage_dates": {
+      "A": ["2026-06-11", "2026-06-18", "2026-06-24"],
+      "B": [["2026-06-12", "2026-06-13"], "2026-06-18", "2026-06-24"],
+      "C": ["2026-06-13", "2026-06-19", "2026-06-24"],
+      "D": [["2026-06-12", "2026-06-13"], "2026-06-19", "2026-06-25"],
+      "E": ["2026-06-14", "2026-06-20", "2026-06-25"],
+      "F": ["2026-06-14", "2026-06-20", "2026-06-25"],
+      "G": ["2026-06-15", "2026-06-21", "2026-06-26"],
+      "H": ["2026-06-15", "2026-06-21", "2026-06-26"],
+      "I": ["2026-06-16", "2026-06-22", "2026-06-26"],
+      "J": ["2026-06-16", "2026-06-22", "2026-06-27"],
+      "K": ["2026-06-17", "2026-06-23", "2026-06-27"],
+      "L": ["2026-06-17", "2026-06-23", "2026-06-27"]
+    }
+  }
+}

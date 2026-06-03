@@ -1,45 +1,55 @@
 # TippNation
 
-Welcome to TippNation! This is a fun little project designed to enhance the excitement of family-internal betting games. With TippNation, you can create, manage, and enjoy betting games with your family and friends in a simple and interactive way.
+TippNation is a small Streamlit betting game for a closed World Cup group.
 
-## Features
+## Architecture
 
-- **Create Betting Games:** Easily set up betting games for various events.
-- **Manage Participants:** Add and manage participants in your betting games.
-- **Track Bets:** Keep track of all bets placed by participants.
-- **Leaderboard:** Automatically calculate and display the leaderboard based on the outcomes of the bets.
+- `app.py` contains the Streamlit UI only.
+- `tippnation/db.py` supports local SQLite and Turso/libSQL.
+- `tippnation/admin.py` exposes Python admin functions for database initialization, result updates, and point computation.
+- `tippnation/scoring.py` contains the point rules and stores computed results in the database.
+- `data/events/world_cup_2026.json` is the checked-in World Cup 2026 event bundle. It contains rules, teams, and fixture templates, but no user data.
 
-## How to Use
+## Secrets
 
-1. **Create a Game:** Deploy the app including a Schedule, Admin, and Players file.
-2. **Add Participants:** Invite your family and friends to join the game by adding their names. Give them passwords
-   and add them to the `secrets.toml`.
-3. **Place Bets:** Each participant can place their bets for the event, by specifying the day when the event happens.
-4. **Track Results:** Once the event is over, enter the results to see who won.
-5. **Leaderboard:** Check the leaderboard to see who has the most points and is leading the game.
+Users are still managed through Streamlit secrets. Supported formats:
 
-## Purpose
+```toml
+[Admin]
+Password = "admin-password"
 
-TippNation is designed to make family-internal betting games more fun and engaging. It provides an easy-to-use platform where everyone can participate, place their bets, and enjoy a friendly competition. Whether it's for sports events, reality TV shows, or any other bet-worthy events, TippNation brings an extra layer of excitement to your family gatherings.
+[Yannick]
+Password = "user-password"
 
-## Technologies Used
+[turso]
+url = "libsql://tippster-yannicklimmer.aws-eu-west-1.turso.io"
+auth_token = "..."
+```
 
-- **Streamlit:** For building the web application.
-- **Python:** For the backend logic and data handling.
-- **Pandas:** For data manipulation and analysis.
-- **NumPy:** For numerical operations.
-- **Matplotlib/Plotly:** For creating visualizations.
+Environment variables `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` are also supported. If no Turso URL is configured, the app uses `data/tippnation.sqlite3`.
 
-## Future Improvements
+## Run
 
-- **User Authentication:** Allow users to create accounts and log in to manage their own games.
-- **Notifications:** Send notifications to participants about upcoming events and bet results.
-- **Enhanced Leaderboard:** Add more detailed statistics and analytics to the leaderboard.
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
 
-## Contributing
+The app initializes and syncs the configured event and secret-backed users on startup. Admin actions in the app can update match results and recompute point tables into SQLite/Turso.
 
-This project is currently a small, family-focused endeavor, but if you're interested in contributing, feel free to fork the repository and submit pull requests. Any suggestions for improvements are welcome!
+## Local Euro 2024 Replay
 
-## License
+Euro 2024 replay mode is a local development aid for testing rule changes against a historical tournament state. It never uses Turso. Each local replay launch creates a scratch SQLite database under `data/replay/` and seeds it from `agent/ec-2024.txt` plus `data/events/euro_2024.json`.
 
-This project is open-source and available under the MIT License. Feel free to use, modify, and distribute it as per the terms of the license.
+```bash
+TIPPNATION_REPLAY=euro_2024 TIPPNATION_REPLAY_SNAPSHOT=group_stage streamlit run app.py
+```
+
+Supported snapshots:
+
+- `pre_tournament`: 2024-06-14 17:00 UTC, before Germany vs Scotland.
+- `group_stage`: 2024-06-20 12:00 UTC, during the group stage.
+- `playoffs`: 2024-07-06 12:00 UTC, during the quarterfinals.
+- `post_final`: 2024-07-15 10:00 UTC, after the final.
+
+You can also use query parameters, for example `?replay=euro_2024&snapshot=playoffs`. In replay mode, every local user can log in with password `user`, and the admin tab uses password `admin`.

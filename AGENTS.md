@@ -1,0 +1,72 @@
+# TippNation Agent Guide
+
+This file is for future coding agents working in this repository. Keep it current when you learn something important about the app, architecture, deployment, or data model.
+
+## Repository Purpose
+
+TippNation is a private Streamlit betting game for a small World Cup group. The current redesign moves the app away from CSV/Google Sheets storage toward SQLite-compatible persistence via Turso/libSQL.
+
+The app should remain simple for roughly 10 trusted users, but the code should be robust, typed where practical, and structured so data mutations happen through explicit database functions rather than implicit Streamlit session state or local CSV files.
+
+## Current Architecture
+
+- `app.py` is the Streamlit entrypoint and should stay focused on UI composition.
+- `tippnation/db.py` owns database connection abstractions and schema creation for local SQLite and Turso/libSQL.
+- `tippnation/repository.py` owns CRUD-style persistence operations.
+- `tippnation/admin.py` exposes Python admin functions for initialization, result updates, and persisted point recomputation.
+- `tippnation/scoring.py` contains the betting points logic, including Kanonenwilli assignment.
+- `tippnation/config.py` loads event bundles and expands the World Cup 2026 fixture template.
+- `tippnation/i18n.py` contains supported UI strings for English and German.
+- `tippnation/secrets.py` reads `.secrets`, Streamlit secrets, and environment variables.
+- `data/events/world_cup_2026.json` is the checked-in event config bundle. It must not contain user data.
+
+Legacy modules such as `make_entries.py`, `display_entries.py`, `display_points.py`, `heat_map.py`, `points.py`, `admin.py`, and `util.py` reflect the old CSV/Sheets implementation. Prefer extending the `tippnation/` package and `app.py` over reviving legacy patterns.
+
+## Data and Secrets
+
+- Do not commit `.secrets`, `.streamlit/secrets.toml`, local SQLite DB files, generated point CSVs, or real user passwords/tokens.
+- The production Turso URL is `libsql://tippster-yannicklimmer.aws-eu-west-1.turso.io`; the token is expected in `.secrets`, Streamlit secrets, or `TURSO_AUTH_TOKEN`.
+- User accounts are still admin-created via secrets. The database stores active player rows and user-generated game data, but not passwords.
+- Favorites are user-selected in the app and persisted in the `favorites` table.
+- Computed points are persisted in the `points` table to avoid expensive recomputation on normal page views.
+- Euro 2024 local replay mode uses `data/events/euro_2024.json`, `agent/ec-2024.txt`, and scratch SQLite files under `data/replay/`. It is activated with `TIPPNATION_REPLAY=euro_2024` plus a snapshot key and must not hit Turso.
+
+## Event Config Rules
+
+- Event config bundles belong under `data/events/`.
+- Config bundles should include rules, teams, naming conventions, and fixture templates or explicit fixtures.
+- Config bundles must not include user-specific data, secrets, bets, favorites, or point results.
+- World Cup 2026 source material is in `agent/wc.txt`. Treat it as a local reference. It uses Wikipedia transclusions for many fixture details, so verify carefully before replacing placeholders with exact teams/times/venues.
+- The `agent/` folder is for planning/source material. Link to it from docs when useful, but keep production code independent from it.
+
+## Coding Rules
+
+- Keep Streamlit UI thin; move data access, scoring, and admin workflows into typed modules under `tippnation/`.
+- Use explicit database writes for state that must survive reruns or deployments.
+- Avoid global mutable state except Streamlit session state for UI-only concerns like login/session language.
+- Preserve the existing game flavor and stats tables, but prefer clearer names and persisted calculations.
+- Support only English and German in UI language handling.
+- Keep app behavior usable on phone and desktop: avoid very wide mandatory layouts, prefer compact tables/cards, and use `use_container_width=True` for data displays.
+- Do not add new external services unless they are clearly necessary.
+- Do not introduce broad rewrites of unrelated legacy files unless you are intentionally migrating their functionality.
+
+## Validation
+
+When changing core code, run at least:
+
+```bash
+python3 -m compileall app.py tippnation
+git diff --check
+```
+
+If dependencies are installed, also run a local SQLite smoke test for schema creation, bet insertion, result update, and point recomputation. Avoid hitting Turso in tests unless the user explicitly asks for live DB validation.
+
+## Future Agent Notes
+
+Add new findings here when they reduce ambiguity for future work. Good additions include:
+
+- Exact production deployment assumptions.
+- Finalized World Cup 2026 fixtures after they are verified.
+- Database migration decisions.
+- Known Streamlit limitations or UI tradeoffs.
+- Scoring rule clarifications from the app owner.
