@@ -34,7 +34,7 @@ app_key = "..."
 session_token = "..."
 ```
 
-Environment variables `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` are also supported. If no Turso URL is configured, the app uses `data/tippnation.sqlite3`.
+Environment variables `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` are also supported. For CI, `TIPPNATION_SECRETS_TOML` or `TIPPNATION_SECRETS` may contain the full TOML secrets document. If no Turso URL is configured, the app uses `data/tippnation.sqlite3`.
 
 ## Run
 
@@ -71,6 +71,18 @@ python -m tippnation.odds_cli --force --all-upcoming
 
 After the friendlies trial, switch `DEFAULT_EVENT_CONFIG` in `tippnation/config.py`
 back to `data/events/world_cup_2026.json`.
+
+## GitHub Actions Odds Refresh
+
+`.github/workflows/betfair-odds.yml` runs `python -m tippnation.odds_cli --strict` every hour at minute 17 UTC. Each run requests a Betfair session keep-alive before it decides whether odds are due, so the session is renewed hourly as long as Betfair accepts the session token from GitHub Actions. In strict mode, missing credentials, keep-alive failures, and refresh errors fail the Actions run instead of only printing a warning.
+
+Create one repository secret named `TIPPNATION_SECRETS` whose value is the complete local `.secrets` TOML content, including Turso and Betfair sections. The workflow exposes that value only as `TIPPNATION_SECRETS_TOML` for the Python process; it is not written to the repository checkout. Alternatively, individual repository secrets named `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `BETFAIR_APP_KEY`, and `BETFAIR_SESSION` are also supported, along with the older `TURSO_TOKEN`, `BF_TOKEN`, and `BF_SESSION` names.
+
+The workflow can also be started manually from the GitHub Actions tab:
+
+- Leave `force` off to use the normal one-hour/five-hour/final-hour cadence.
+- Set `force` to refresh the next upcoming stage immediately.
+- Set both `force` and `all_upcoming` to refresh every upcoming match in the configured event.
 
 ## Local Euro 2024 Replay
 

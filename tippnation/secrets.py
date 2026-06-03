@@ -33,10 +33,8 @@ def _mapping_to_dict(value: Any) -> dict[str, Any]:
     return {}
 
 
-def _read_dot_secrets(path: Path = ROOT / ".secrets") -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    raw = path.read_text(encoding="utf-8").strip()
+def _parse_secret_text(raw: str) -> dict[str, Any]:
+    raw = raw.strip()
     if not raw:
         return {}
     try:
@@ -52,6 +50,17 @@ def _read_dot_secrets(path: Path = ROOT / ".secrets") -> dict[str, Any]:
         return parsed
 
 
+def _read_dot_secrets(path: Path = ROOT / ".secrets") -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    return _parse_secret_text(path.read_text(encoding="utf-8"))
+
+
+def _read_packed_env_secrets() -> dict[str, Any]:
+    raw = os.getenv("TIPPNATION_SECRETS_TOML") or os.getenv("TIPPNATION_SECRETS") or ""
+    return _parse_secret_text(raw)
+
+
 def load_secret_sources() -> dict[str, Any]:
     merged: dict[str, Any] = {}
     merged.update(_read_dot_secrets())
@@ -59,6 +68,7 @@ def load_secret_sources() -> dict[str, Any]:
         merged.update(_mapping_to_dict(st.secrets))
     except Exception:
         pass
+    merged.update(_read_packed_env_secrets())
     return merged
 
 
@@ -83,15 +93,15 @@ def get_database_settings(source: Mapping[str, Any] | None = None) -> DatabaseSe
     token = (
         os.getenv("TURSO_AUTH_TOKEN")
         or os.getenv("TURSO_TOKEN")
-        or secrets.get("TURSO_AUTH_TOKEN")
-        or secrets.get("TURSO_TOKEN")
-        or secrets.get("auth_token")
-        or secrets.get("token")
         or _get_nested(secrets, ("turso", "auth_token"))
         or _get_nested(secrets, ("turso", "token"))
         or _get_nested(secrets, ("database", "auth_token"))
         or _get_nested(secrets, ("database", "token"))
         or _get_nested(secrets, ("connections", "turso", "auth_token"))
+        or secrets.get("TURSO_AUTH_TOKEN")
+        or secrets.get("TURSO_TOKEN")
+        or secrets.get("auth_token")
+        or secrets.get("token")
     )
     if not url and token:
         url = DEFAULT_TURSO_URL
@@ -105,18 +115,18 @@ def get_betfair_settings(source: Mapping[str, Any] | None = None) -> BetfairSett
     app_key = (
         os.getenv("BETFAIR_APP_KEY")
         or os.getenv("BF_TOKEN")
-        or secrets.get("BETFAIR_APP_KEY")
-        or secrets.get("BF_TOKEN")
         or _get_nested(secrets, ("betfair", "app_key"))
         or _get_nested(secrets, ("betfair", "token"))
+        or secrets.get("BETFAIR_APP_KEY")
+        or secrets.get("BF_TOKEN")
     )
     session_token = (
         os.getenv("BETFAIR_SESSION")
         or os.getenv("BF_SESSION")
-        or secrets.get("BETFAIR_SESSION")
-        or secrets.get("BF_SESSION")
         or _get_nested(secrets, ("betfair", "session"))
         or _get_nested(secrets, ("betfair", "session_token"))
+        or secrets.get("BETFAIR_SESSION")
+        or secrets.get("BF_SESSION")
     )
     if not app_key or not session_token:
         return None

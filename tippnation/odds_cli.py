@@ -26,6 +26,7 @@ class LocalOddsUpdateResult:
     locked_matches: int
     unmatched_matches: int
     skipped_reason: str | None = None
+    error: str | None = None
 
 
 def update_betting_odds(
@@ -83,6 +84,7 @@ def update_betting_odds(
             locked_matches=locked_before + result.locked_matches,
             unmatched_matches=result.unmatched_matches,
             skipped_reason=result.skipped_reason or (None if decision.due else decision.reason),
+            error=result.error,
         )
     finally:
         db.close()
@@ -104,6 +106,15 @@ def _parse_now(value: str | None) -> datetime | None:
         return None
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _strict_failure_reason(result: LocalOddsUpdateResult) -> str | None:
+    if result.error:
+        return result.error
+    reason = result.skipped_reason or ""
+    if "Betfair credentials" in reason or "Betfair keep-alive failed" in reason:
+        return reason
+    return None
 
 
 def main() -> None:
@@ -128,6 +139,11 @@ def main() -> None:
         "--now",
         help="Override current time for testing, e.g. 2026-06-05T22:30:00+00:00.",
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit non-zero for CI-relevant failures such as missing Betfair credentials, keep-alive failure, or refresh errors.",
+    )
     args = parser.parse_args()
 
     result = update_betting_odds(
@@ -142,6 +158,10 @@ def main() -> None:
     print(f"locked_matches={result.locked_matches}")
     if result.skipped_reason:
         print(f"skipped_reason={result.skipped_reason}")
+    if result.error:
+        print(f"error={result.error}")
+    if args.strict and (failure_reason := _strict_failure_reason(result)):
+        raise SystemExit(failure_reason)
 
 
 if __name__ == "__main__":
