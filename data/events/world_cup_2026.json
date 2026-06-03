@@ -822,5 +822,9 @@
         "2026-06-27"
       ]
     }
+  },
+  "betfair": {
+    "event_type_id": "1",
+    "competition_id": "12469077"
   }
 }

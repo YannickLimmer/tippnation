@@ -156,27 +156,39 @@ class BetfairClient:
             raise RuntimeError(json.dumps(first["error"], sort_keys=True))
         return first.get("result")
 
-    def list_world_cup_events(self, start: datetime, end: datetime) -> list[dict[str, Any]]:
+    def list_competition_events(
+        self,
+        start: datetime,
+        end: datetime,
+        competition_id: str,
+        event_type_id: str = BETFAIR_SOCCER_EVENT_TYPE_ID,
+    ) -> list[dict[str, Any]]:
         return self.call(
             "listEvents",
             {
                 "filter": {
-                    "eventTypeIds": [BETFAIR_SOCCER_EVENT_TYPE_ID],
-                    "competitionIds": [BETFAIR_WORLD_CUP_COMPETITION_ID],
+                    "eventTypeIds": [event_type_id],
+                    "competitionIds": [competition_id],
                     "marketStartTime": {"from": _utc_z(start), "to": _utc_z(end)},
                 }
             },
         )
 
-    def list_market_catalogue(self, provider_event_ids: list[str], market_type: str) -> list[dict[str, Any]]:
+    def list_market_catalogue(
+        self,
+        provider_event_ids: list[str],
+        market_type: str,
+        competition_id: str,
+        event_type_id: str = BETFAIR_SOCCER_EVENT_TYPE_ID,
+    ) -> list[dict[str, Any]]:
         if not provider_event_ids:
             return []
         return self.call(
             "listMarketCatalogue",
             {
                 "filter": {
-                    "eventTypeIds": [BETFAIR_SOCCER_EVENT_TYPE_ID],
-                    "competitionIds": [BETFAIR_WORLD_CUP_COMPETITION_ID],
+                    "eventTypeIds": [event_type_id],
+                    "competitionIds": [competition_id],
                     "eventIds": provider_event_ids,
                     "marketTypeCodes": [market_type],
                 },
@@ -275,8 +287,8 @@ def refresh_market_odds_if_due(
     locked = lock_latest_pregame_odds(db, config.event_id, now)
     if settings is None:
         return OddsRefreshResult(False, locked_matches=locked, skipped_reason="Betfair credentials are not configured.")
-    if config.event_id != "world_cup_2026":
-        return OddsRefreshResult(False, locked_matches=locked, skipped_reason="Live Betfair refresh is only enabled for World Cup 2026.")
+    if not config.betfair_competition_id:
+        return OddsRefreshResult(False, locked_matches=locked, skipped_reason="Live Betfair refresh is not enabled for this event.")
 
     decision = odds_refresh_decision(db, config.event_id, matches, now)
     if not decision.due:
@@ -313,7 +325,14 @@ def refresh_betfair_odds(
     client = BetfairClient(settings)
     start = _to_datetime(target["kickoff_utc"].min()) - timedelta(hours=6)
     end = _to_datetime(target["kickoff_utc"].max()) + timedelta(hours=6)
-    provider_events = client.list_world_cup_events(start, end)
+    if not config.betfair_competition_id:
+        return 0, len(target)
+    provider_events = client.list_competition_events(
+        start,
+        end,
+        config.betfair_competition_id,
+        config.betfair_event_type_id,
+    )
     mappings = _map_provider_events(config, target, provider_events)
     if not mappings:
         return 0, len(target)
@@ -321,7 +340,14 @@ def refresh_betfair_odds(
     provider_event_ids = [mapping.provider_event_id for mapping in mappings]
     catalogue: list[dict[str, Any]] = []
     for market_type in CORE_MARKET_TYPES:
-        catalogue.extend(client.list_market_catalogue(provider_event_ids, market_type))
+        catalogue.extend(
+            client.list_market_catalogue(
+                provider_event_ids,
+                market_type,
+                config.betfair_competition_id,
+                config.betfair_event_type_id,
+            )
+        )
     books = client.list_market_book([market["marketId"] for market in catalogue])
     book_by_id = {book["marketId"]: book for book in books}
 

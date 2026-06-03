@@ -149,7 +149,7 @@ def render_market_odds_refresh(db: Database, config: EventConfig, replay: Replay
                 st.warning(t(language, "betfair_keep_alive_failed").format(status=keep_alive_result.get("status", "unknown")))
     current_time = now_utc()
     decision = odds_refresh_decision(db, config.event_id, matches, current_time)
-    if settings and config.event_id == "world_cup_2026" and decision.due:
+    if settings and config.betfair_competition_id and decision.due:
         with st.status(t(language, "market_odds_updating"), expanded=False):
             st.write(decision.reason)
             result = refresh_market_odds_if_due(db, config, settings, matches, current_time)

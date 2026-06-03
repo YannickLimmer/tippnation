@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_EVENT_CONFIG = ROOT / "data" / "events" / "world_cup_2026.json"
+DEFAULT_EVENT_CONFIG = ROOT / "data" / "events" / "international_friendlies_trial_2026.json"
 
 
 @dataclass(frozen=True)
@@ -43,6 +43,8 @@ class EventConfig:
     teams: dict[str, str]
     matches: list[MatchConfig]
     kanonenwilli_seed: str
+    betfair_competition_id: str | None = None
+    betfair_event_type_id: str = "1"
 
     def local_timezone(self) -> ZoneInfo:
         return ZoneInfo(self.timezone)
@@ -84,6 +86,16 @@ def load_event_config(path: Path = DEFAULT_EVENT_CONFIG) -> EventConfig:
         teams={str(key): str(value) for key, value in raw["teams"].items()},
         matches=matches,
         kanonenwilli_seed=str(raw.get("kanonenwilli_seed", raw["event_id"])),
+        betfair_competition_id=(
+            str(raw["betfair"]["competition_id"])
+            if isinstance(raw.get("betfair"), dict) and raw["betfair"].get("competition_id")
+            else None
+        ),
+        betfair_event_type_id=(
+            str(raw["betfair"].get("event_type_id", "1"))
+            if isinstance(raw.get("betfair"), dict)
+            else "1"
+        ),
     )
 
 
@@ -202,6 +214,12 @@ def config_as_json(config: EventConfig) -> str:
                 for match in config.matches
             ],
             "kanonenwilli_seed": config.kanonenwilli_seed,
+            "betfair": {
+                "competition_id": config.betfair_competition_id,
+                "event_type_id": config.betfair_event_type_id,
+            }
+            if config.betfair_competition_id
+            else None,
         },
         sort_keys=True,
     )
