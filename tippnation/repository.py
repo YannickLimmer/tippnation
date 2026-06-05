@@ -142,7 +142,7 @@ def load_match_bet_usernames(db: Database, event_id: str, match_id: str) -> list
 def load_points(db: Database, event_id: str) -> pd.DataFrame:
     rows = db.query(
         """
-        SELECT p.*, m.kickoff_utc, m.stage, m.round_name, m.group_name,
+        SELECT p.*, m.sort_order, m.kickoff_utc, m.stage, m.round_name, m.group_name,
                m.team_a_name, m.team_b_name, m.result_a, m.result_b
         FROM points p
         JOIN matches m ON m.event_id = p.event_id AND m.match_id = p.match_id

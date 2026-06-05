@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from datetime import date, datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pandas as pd
 import plotly.express as px
@@ -181,17 +182,30 @@ def display_path(path: Path) -> str:
         return str(path)
 
 
-def localize_match_times(df: pd.DataFrame, config: EventConfig) -> pd.DataFrame:
+def browser_timezone(config: EventConfig) -> ZoneInfo:
+    try:
+        timezone_name = getattr(st.context, "timezone", None)
+    except Exception:
+        timezone_name = None
+    if not timezone_name:
+        timezone_name = config.timezone
+    try:
+        return ZoneInfo(str(timezone_name))
+    except ZoneInfoNotFoundError:
+        return ZoneInfo(config.timezone)
+
+
+def localize_match_times(df: pd.DataFrame, user_timezone: ZoneInfo) -> pd.DataFrame:
     if df.empty:
         return df
     local = df.copy()
-    local["kickoff_local"] = local["kickoff_utc"].dt.tz_convert(config.timezone)
-    local["date"] = local["kickoff_local"].dt.date
+    local["kickoff"] = local["kickoff_utc"].dt.tz_convert(user_timezone)
+    local["date"] = local["kickoff"].dt.date
     return local
 
 
-def current_local_date(config: EventConfig) -> date:
-    return pd.Timestamp(now_utc()).tz_convert(config.timezone).date()
+def current_local_date(user_timezone: ZoneInfo) -> date:
+    return pd.Timestamp(now_utc()).tz_convert(user_timezone).date()
 
 
 def first_kickoff_utc(config: EventConfig) -> datetime:
@@ -202,11 +216,11 @@ def favorites_locked(config: EventConfig) -> bool:
     return now_utc() >= first_kickoff_utc(config)
 
 
-def default_match_date(matches: pd.DataFrame, config: EventConfig) -> date | None:
+def default_match_date(matches: pd.DataFrame, user_timezone: ZoneInfo) -> date | None:
     if matches.empty:
         return None
     dates = sorted(matches["date"].unique())
-    today = current_local_date(config)
+    today = current_local_date(user_timezone)
     return next((date for date in dates if date >= today), dates[-1])
 
 
@@ -295,7 +309,8 @@ def render_favorite_picker(db: Database, config: EventConfig, username: str, lan
 
 def render_next_match_status(db: Database, config: EventConfig, players: list[str], language: str) -> None:
     db_key = database_cache_key(db)
-    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id), config)
+    user_timezone = browser_timezone(config)
+    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id), user_timezone)
     upcoming = matches[matches["kickoff_utc"] >= pd.Timestamp(now_utc())]
     if upcoming.empty:
         return
@@ -308,7 +323,7 @@ def render_next_match_status(db: Database, config: EventConfig, players: list[st
         cols[0].markdown(
             f"**{t(language, 'next_match_status')}** · "
             f"{next_match['team_a_name']} vs {next_match['team_b_name']} · "
-            f"{next_match['kickoff_local'].strftime('%d %b %H:%M')}"
+            f"{next_match['kickoff'].strftime('%d %b %H:%M')}"
         )
         cols[1].markdown(
             f"**{t(language, 'submitted_count').format(submitted=len(submitted), total=len(players))}**"
@@ -380,8 +395,9 @@ def render_bets(db: Database, config: EventConfig, players: list[str], username:
 
     render_favorite_picker(db, config, username, language)
     db_key = database_cache_key(db)
-    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id), config)
-    selected_date = st.date_input(t(language, "select_date"), value=default_match_date(matches, config))
+    user_timezone = browser_timezone(config)
+    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id), user_timezone)
+    selected_date = st.date_input(t(language, "select_date"), value=default_match_date(matches, user_timezone))
     selected = matches[matches["date"] == selected_date].copy()
     if selected.empty:
         render_status()
@@ -404,7 +420,7 @@ def render_bets(db: Database, config: EventConfig, players: list[str], username:
             with st.container(border=True):
                 st.markdown(
                     f"**{match.team_a_name} vs {match.team_b_name}** · "
-                    f"{match.kickoff_local.strftime('%H:%M')} · {match.round_name}"
+                    f"{match.kickoff.strftime('%H:%M')} · {match.round_name}"
                 )
                 cols = st.columns([1, 1, 2])
                 score_a = cols[0].number_input(
@@ -474,7 +490,8 @@ def render_entries(db: Database, config: EventConfig, players: list[str], langua
         st.markdown(f"### {t(language, 'favorites')}")
         st.dataframe(favorites[["username", "team"]], hide_index=True, width="stretch")
 
-    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id, now_bucket(60)), config)
+    user_timezone = browser_timezone(config)
+    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id, now_bucket(60)), user_timezone)
     bets = cached_load_bets(db, db_key, config.event_id)
     if bets.empty:
         st.info(t(language, "no_matches"))
@@ -487,12 +504,13 @@ def render_entries(db: Database, config: EventConfig, players: list[str], langua
     selected_players = st.multiselect(t(language, "username"), options=players, default=players)
     rows = rows[rows["username"].isin(selected_players)]
     rows["bet"] = rows["score_a"].astype(str) + ":" + rows["score_b"].astype(str) + " ×" + rows["factor"].astype(str)
+    rows["kickoff"] = rows["kickoff"].dt.strftime("%Y-%m-%d %H:%M")
     display = rows.pivot_table(
-        index=["kickoff_local", "team_a_name", "team_b_name", "result_a", "result_b"],
+        index=["kickoff", "team_a_name", "team_b_name", "result_a", "result_b"],
         columns="username",
         values="bet",
         aggfunc="first",
-    ).reset_index().sort_values("kickoff_local", ascending=False)
+    ).reset_index().sort_values("kickoff", ascending=False)
     st.dataframe(display, hide_index=True, width="stretch")
 
 
@@ -513,23 +531,28 @@ def render_stats(db: Database, config: EventConfig, language: str) -> None:
     st.dataframe(standings, hide_index=True, width="stretch")
 
     st.markdown(f"### {t(language, 'points_by_match')}")
-    by_match = points.pivot_table(
-        index=["kickoff_utc", "team_a_name", "team_b_name", "result_a", "result_b"],
+    points_by_match = points.copy()
+    points_by_match["kickoff"] = points_by_match["kickoff_utc"].dt.tz_convert(browser_timezone(config)).dt.strftime(
+        "%Y-%m-%d %H:%M"
+    )
+    by_match = points_by_match.pivot_table(
+        index=["kickoff", "team_a_name", "team_b_name", "result_a", "result_b"],
         columns="username",
         values="final",
         aggfunc="sum",
-    ).reset_index().sort_values("kickoff_utc", ascending=False)
+    ).reset_index().sort_values("kickoff", ascending=False)
     st.dataframe(by_match, hide_index=True, width="stretch")
 
-    progression = points.sort_values(["kickoff_utc"]).copy()
+    progression = points.sort_values(["sort_order", "username"]).copy()
+    progression["match_number"] = progression["sort_order"].astype(int)
     progression["running"] = progression.groupby("username")["final"].cumsum()
-    chart = progression.pivot_table(index="kickoff_utc", columns="username", values="running", aggfunc="max")
+    chart = progression.pivot_table(index="match_number", columns="username", values="running", aggfunc="max")
     st.line_chart(chart)
 
 
 def render_heatmaps(db: Database, config: EventConfig, players: list[str], language: str) -> None:
     db_key = database_cache_key(db)
-    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id), config)
+    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id), browser_timezone(config))
     visible_matches = matches[matches["kickoff_utc"] < pd.Timestamp(now_utc())]
     if visible_matches.empty:
         st.info(t(language, "visible_after_kickoff"))
