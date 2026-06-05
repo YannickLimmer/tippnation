@@ -48,6 +48,8 @@ from tippnation.secrets import (
 
 
 READ_REFRESH_INTERVAL = "60s"
+POINT_DISPLAY_COLUMNS = ["base", "fbase", "exotic", "favorite", "kanonenwilli", "final"]
+POINT_COMPOSITION_COLUMNS = ["fbase", "exotic", "favorite", "kanonenwilli"]
 
 
 @st.cache_resource(show_spinner=False)
@@ -529,6 +531,15 @@ def render_stats(db: Database, config: EventConfig, language: str) -> None:
     )
     standings.insert(0, "rank", standings["final"].rank(method="min", ascending=False).astype(int))
     st.dataframe(standings, hide_index=True, width="stretch")
+    standings_chart_data = standings[["username", *POINT_COMPOSITION_COLUMNS]].melt(
+        id_vars="username",
+        value_vars=POINT_COMPOSITION_COLUMNS,
+        var_name="component",
+        value_name="points",
+    )
+    fig = px.bar(standings_chart_data, x="username", y="points", color="component")
+    fig.update_layout(margin={"l": 8, "r": 8, "t": 8, "b": 8}, xaxis_title=t(language, "username"), yaxis_title="Points")
+    st.plotly_chart(fig, width="stretch")
 
     st.markdown(f"### {t(language, 'points_by_match')}")
     points_by_match = points.copy()
@@ -548,6 +559,100 @@ def render_stats(db: Database, config: EventConfig, language: str) -> None:
     progression["running"] = progression.groupby("username")["final"].cumsum()
     chart = progression.pivot_table(index="match_number", columns="username", values="running", aggfunc="max")
     st.line_chart(chart)
+
+
+@st.fragment(run_every=READ_REFRESH_INTERVAL)
+def render_breakdown(db: Database, config: EventConfig, players: list[str], username: str | None, language: str) -> None:
+    db_key = database_cache_key(db)
+    points = cached_load_points(db, db_key, config.event_id, now_bucket(60))
+    if points.empty:
+        st.info(t(language, "no_points"))
+        return
+
+    user_timezone = browser_timezone(config)
+    display_points = points.copy()
+    bets = cached_load_bets(db, db_key, config.event_id)
+    if not bets.empty:
+        bet_scores = bets[["match_id", "username", "score_a", "score_b", "factor"]].copy()
+        display_points = display_points.merge(bet_scores, on=["match_id", "username"], how="left")
+    else:
+        display_points["score_a"] = pd.NA
+        display_points["score_b"] = pd.NA
+        display_points["factor"] = pd.NA
+    display_points["kickoff"] = display_points["kickoff_utc"].dt.tz_convert(user_timezone).dt.strftime("%Y-%m-%d %H:%M")
+    display_points["match_number"] = display_points["sort_order"].astype(int)
+    display_points["match"] = display_points["team_a_name"] + " vs " + display_points["team_b_name"]
+    display_points["result"] = (
+        display_points["result_a"].astype("Int64").astype(str) + ":" + display_points["result_b"].astype("Int64").astype(str)
+    )
+    display_points["bet"] = (
+        display_points["score_a"].astype("Int64").astype(str) + ":" + display_points["score_b"].astype("Int64").astype(str)
+        + " (x"
+        + display_points["factor"].astype("Int64").astype(str)
+        + ")"
+    )
+
+    st.markdown(f"### {t(language, 'match_breakdown')}")
+    match_options = (
+        display_points[["match_id", "match_number", "kickoff", "match", "result"]]
+        .drop_duplicates("match_id")
+        .sort_values("match_number", ascending=False)
+    )
+    selected_match_id = st.selectbox(
+        t(language, "select_match"),
+        options=list(match_options["match_id"]),
+        format_func=lambda match_id: _format_match_option(match_options, str(match_id)),
+        key="breakdown_match",
+    )
+    match_rows = display_points[display_points["match_id"] == selected_match_id].sort_values("final", ascending=False)
+    st.dataframe(match_rows[["username", "bet", *POINT_DISPLAY_COLUMNS]], hide_index=True, width="stretch")
+    match_chart_data = match_rows[["username", *POINT_COMPOSITION_COLUMNS]].melt(
+        id_vars="username",
+        value_vars=POINT_COMPOSITION_COLUMNS,
+        var_name="component",
+        value_name="points",
+    )
+    fig = px.bar(match_chart_data, x="username", y="points", color="component")
+    fig.update_layout(margin={"l": 8, "r": 8, "t": 8, "b": 8}, xaxis_title=t(language, "username"), yaxis_title="Points")
+    st.plotly_chart(fig, width="stretch")
+
+    st.markdown(f"### {t(language, 'user_breakdown')}")
+    user_options = [player for player in players if player in set(display_points["username"])]
+    default_user_index = user_options.index(username) if username in user_options else None
+    selected_user = st.selectbox(
+        t(language, "select_user"),
+        options=user_options,
+        index=default_user_index,
+        placeholder=t(language, "select_user"),
+        key=f"breakdown_user_{username or 'anonymous'}",
+    )
+    if selected_user is None:
+        return
+
+    user_rows = display_points[display_points["username"] == selected_user].sort_values("match_number", ascending=False)
+    st.dataframe(
+        user_rows[["kickoff", "match", "bet", "result", *POINT_DISPLAY_COLUMNS]],
+        hide_index=True,
+        width="stretch",
+    )
+
+    st.markdown(f"### {t(language, 'points_composition')}")
+    progression = display_points[display_points["username"] == selected_user].sort_values("match_number").copy()
+    progression[POINT_COMPOSITION_COLUMNS] = progression[POINT_COMPOSITION_COLUMNS].cumsum()
+    chart_data = progression[["match_number", *POINT_COMPOSITION_COLUMNS]].melt(
+        id_vars="match_number",
+        value_vars=POINT_COMPOSITION_COLUMNS,
+        var_name="component",
+        value_name="points",
+    )
+    fig = px.area(chart_data, x="match_number", y="points", color="component")
+    fig.update_layout(margin={"l": 8, "r": 8, "t": 8, "b": 8}, xaxis_title=t(language, "select_match"), yaxis_title="Points")
+    st.plotly_chart(fig, width="stretch")
+
+
+def _format_match_option(match_options: pd.DataFrame, match_id: str) -> str:
+    row = match_options.set_index("match_id").loc[match_id]
+    return f"{int(row['match_number'])} · {row['kickoff']} · {row['match']} ({row['result']})"
 
 
 def render_heatmaps(db: Database, config: EventConfig, players: list[str], language: str) -> None:
@@ -683,6 +788,7 @@ def main() -> None:
             t(language, "bets"),
             t(language, "entries"),
             t(language, "heatmaps"),
+            t(language, "breakdown"),
             t(language, "stats"),
             t(language, "help"),
             t(language, "admin"),
@@ -695,10 +801,12 @@ def main() -> None:
     with tabs[2]:
         render_heatmaps(db, config, players, language)
     with tabs[3]:
-        render_stats(db, config, language)
+        render_breakdown(db, config, players, username, language)
     with tabs[4]:
-        render_help(language)
+        render_stats(db, config, language)
     with tabs[5]:
+        render_help(language)
+    with tabs[6]:
         render_admin(db, config, players, language, replay)
 
 
