@@ -26,7 +26,7 @@ DEFAULT_LOOKBACK = timedelta(days=2)
 DEFAULT_LATE_RECHECK = timedelta(minutes=15)
 DEFAULT_MAX_LATE_RECHECK = timedelta(hours=2)
 DEFAULT_MAX_API_REQUESTS = 20
-DEFAULT_API_FOOTBALL_DAILY_BUDGET = 500
+DEFAULT_API_FOOTBALL_DAILY_BUDGET = 7500
 API_FOOTBALL_FINAL_STATUSES = {"FT", "AET", "PEN"}
 API_FOOTBALL_UNSCORABLE_STATUSES = {"NS", "TBD", "PST", "CANC", "ABD", "AWD", "WO"}
 TEAM_ALIASES = {
@@ -198,13 +198,14 @@ def poll_match_results(
     provider: str = "auto",
     now: datetime | None = None,
     force: bool = False,
+    backfill: bool = False,
     dry_run: bool = False,
     max_api_requests: int = DEFAULT_MAX_API_REQUESTS,
     api_football_daily_budget: int = DEFAULT_API_FOOTBALL_DAILY_BUDGET,
 ) -> ResultPollResult:
     current_time = _to_utc(now or datetime.now(timezone.utc))
     state = _load_state(state_path)
-    candidates = _local_candidates(config, state, current_time, force)
+    candidates = _local_candidates(config, state, current_time, force, backfill)
     if not candidates:
         return ResultPollResult(False, False, 0, 0, 0, 0, 0, False, skipped_reason="No locally due matches.")
 
@@ -214,6 +215,9 @@ def poll_match_results(
     for match in candidates:
         row = existing.get(match.match_id)
         entry = _state_entry(state, config.event_id, match.match_id)
+        if backfill and row and _db_row_has_score(row):
+            already_completed += 1
+            continue
         if row and _db_row_completed(row) and not force and not _state_provider_owned(entry):
             already_completed += 1
             if not dry_run:
@@ -327,10 +331,11 @@ def local_due_match_count(
     state_path: Path = DEFAULT_STATE_PATH,
     now: datetime | None = None,
     force: bool = False,
+    backfill: bool = False,
 ) -> int:
     current_time = _to_utc(now or datetime.now(timezone.utc))
     state = _load_state(state_path)
-    return len(_local_candidates(config, state, current_time, force))
+    return len(_local_candidates(config, state, current_time, force, backfill))
 
 
 def _load_provider_events(
@@ -470,16 +475,19 @@ def _local_candidates(
     state: dict[str, Any],
     now: datetime,
     force: bool,
+    backfill: bool,
 ) -> list[MatchConfig]:
     due_after = now - DEFAULT_LOOKBACK
     candidates: list[MatchConfig] = []
     for match in config.matches:
-        if match.kickoff_utc > now or match.kickoff_utc < due_after:
+        if match.kickoff_utc > now:
             continue
-        if not force and now > _settle_until(match):
+        if not backfill and match.kickoff_utc < due_after:
+            continue
+        if not (force or backfill) and now > _settle_until(match):
             continue
         next_check_at = _parse_datetime(_state_entry(state, config.event_id, match.match_id).get("next_check_at"))
-        if not force and next_check_at and now < next_check_at:
+        if not (force or backfill) and next_check_at and now < next_check_at:
             continue
         candidates.append(match)
     return candidates
@@ -506,6 +514,10 @@ def _load_match_result_status(db: Database, event_id: str, match_ids: list[str])
 
 def _db_row_completed(row: dict[str, Any]) -> bool:
     return row.get("result_a") is not None and row.get("result_b") is not None and str(row.get("status") or "") == "completed"
+
+
+def _db_row_has_score(row: dict[str, Any]) -> bool:
+    return row.get("result_a") is not None and row.get("result_b") is not None
 
 
 def _state_provider_owned(entry: dict[str, Any]) -> bool:

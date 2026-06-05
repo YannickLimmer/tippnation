@@ -83,3 +83,4 @@ Current notes:
 - Result polling also supports API-FOOTBALL via `API_FOOTBALL_KEY`; prefer stored fixture IDs over name matching.
 - The friendlies trial has a complete verified API-FOOTBALL map: league `10`, season `2026`, all 28 fixture IDs. API-FOOTBALL returned T01 and T21 with reversed home/away; the result poller swaps scores correctly.
 - API-FOOTBALL result polling checks from kickoff until four hours after kickoff and recomputes points whenever the stored score changes. Penalty shootout winners are represented as result-after-120-minutes plus one goal.
+- `results_cli --backfill` queries all past event fixtures that still have no stored score; normal cron should not use it.

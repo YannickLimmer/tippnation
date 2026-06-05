@@ -46,6 +46,9 @@ from tippnation.secrets import (
 )
 
 
+READ_REFRESH_INTERVAL = "60s"
+
+
 @st.cache_resource(show_spinner=False)
 def get_database(config_path: str, replay_snapshot: str | None) -> Database:
     if replay_snapshot:
@@ -81,7 +84,12 @@ def bootstrap_cached(
 
 
 @st.cache_data(show_spinner=False, ttl=30)
-def cached_load_matches(_db: Database, db_key: str, event_id: str) -> pd.DataFrame:
+def cached_load_matches(
+    _db: Database,
+    db_key: str,
+    event_id: str,
+    refresh_bucket: int | None = None,
+) -> pd.DataFrame:
     return load_matches(_db, event_id)
 
 
@@ -106,7 +114,12 @@ def cached_load_favorites(_db: Database, db_key: str, event_id: str) -> pd.DataF
 
 
 @st.cache_data(show_spinner=False, ttl=10)
-def cached_load_points(_db: Database, db_key: str, event_id: str) -> pd.DataFrame:
+def cached_load_points(
+    _db: Database,
+    db_key: str,
+    event_id: str,
+    refresh_bucket: int | None = None,
+) -> pd.DataFrame:
     return load_points(_db, event_id)
 
 
@@ -452,6 +465,7 @@ def render_bets(db: Database, config: EventConfig, players: list[str], username:
     render_status()
 
 
+@st.fragment(run_every=READ_REFRESH_INTERVAL)
 def render_entries(db: Database, config: EventConfig, players: list[str], language: str) -> None:
     db_key = database_cache_key(db)
     favorites = cached_load_favorites(db, db_key, config.event_id)
@@ -460,7 +474,7 @@ def render_entries(db: Database, config: EventConfig, players: list[str], langua
         st.markdown(f"### {t(language, 'favorites')}")
         st.dataframe(favorites[["username", "team"]], hide_index=True, width="stretch")
 
-    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id), config)
+    matches = localize_match_times(cached_load_matches(db, db_key, config.event_id, now_bucket(60)), config)
     bets = cached_load_bets(db, db_key, config.event_id)
     if bets.empty:
         st.info(t(language, "no_matches"))
@@ -482,8 +496,9 @@ def render_entries(db: Database, config: EventConfig, players: list[str], langua
     st.dataframe(display, hide_index=True, width="stretch")
 
 
+@st.fragment(run_every=READ_REFRESH_INTERVAL)
 def render_stats(db: Database, config: EventConfig, language: str) -> None:
-    points = cached_load_points(db, database_cache_key(db), config.event_id)
+    points = cached_load_points(db, database_cache_key(db), config.event_id, now_bucket(60))
     if points.empty:
         st.info(t(language, "no_points"))
         return

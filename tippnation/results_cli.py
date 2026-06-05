@@ -24,6 +24,7 @@ def update_results_from_provider(
     provider: str = "auto",
     now: datetime | None = None,
     force: bool = False,
+    backfill: bool = False,
     dry_run: bool = False,
     max_api_requests: int = DEFAULT_MAX_API_REQUESTS,
     api_football_daily_budget: int = DEFAULT_API_FOOTBALL_DAILY_BUDGET,
@@ -34,8 +35,8 @@ def update_results_from_provider(
     _log(verbose, f"config_path={config_path}")
     config = load_event_config(config_path)
     _log(verbose, f"event_id={config.event_id}")
-    _log(verbose, f"mode=result_poll force={force} dry_run={dry_run} now={current_time.isoformat()}")
-    due_count = local_due_match_count(config, state_path=state_path, now=current_time, force=force)
+    _log(verbose, f"mode=result_poll force={force} backfill={backfill} dry_run={dry_run} now={current_time.isoformat()}")
+    due_count = local_due_match_count(config, state_path=state_path, now=current_time, force=force, backfill=backfill)
     _log(verbose, f"local_due_matches={due_count}")
     if due_count == 0:
         return ResultPollResult(
@@ -72,6 +73,7 @@ def update_results_from_provider(
             provider=provider,
             now=current_time,
             force=force,
+            backfill=backfill,
             dry_run=dry_run,
             max_api_requests=max_api_requests,
             api_football_daily_budget=api_football_daily_budget,
@@ -110,7 +112,7 @@ def _print_result(result) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Poll final match results and persist TippNation points.")
+    parser = argparse.ArgumentParser(description="Poll live/final match results and persist TippNation points.")
     parser.add_argument(
         "--config",
         type=Path,
@@ -132,6 +134,7 @@ def main() -> None:
     )
     parser.add_argument("--now", help="Override current time for testing, e.g. 2026-06-05T03:00:00+00:00.")
     parser.add_argument("--force", action="store_true", help="Ignore local due/backoff state and check all unresolved matches in the lookback window.")
+    parser.add_argument("--backfill", action="store_true", help="Query all past matches in the event that do not have stored scores.")
     parser.add_argument("--dry-run", action="store_true", help="Fetch and match results without writing the database, points, or local state.")
     parser.add_argument("--max-api-requests", type=int, default=DEFAULT_MAX_API_REQUESTS, help="Maximum provider API requests per run.")
     parser.add_argument(
@@ -150,6 +153,7 @@ def main() -> None:
         provider=str(args.provider),
         now=_parse_now(args.now),
         force=bool(args.force),
+        backfill=bool(args.backfill),
         dry_run=bool(args.dry_run),
         max_api_requests=int(args.max_api_requests),
         api_football_daily_budget=int(args.api_football_daily_budget),

@@ -99,6 +99,8 @@ Run every 5 minutes from cron:
 ```
 
 Use `--dry-run` to test matching without writing results, points, or local state.
+Use `--backfill` to query every past fixture in the event config that still has
+no stored score, regardless of the normal live/final-settle window.
 `--provider auto` prefers API-FOOTBALL when `API_FOOTBALL_KEY` is configured and
 the event has `api_football` metadata; otherwise it falls back to TheSportsDB.
 API-FOOTBALL event configs can include `api_football.league_id`, `season`, and
