@@ -552,6 +552,8 @@ def render_entries(db: Database, config: EventConfig, players: list[str], langua
     selected_players = st.multiselect(t(language, "username"), options=players, default=players)
     rows = rows[rows["username"].isin(selected_players)]
     rows["bet"] = rows["score_a"].astype(str) + ":" + rows["score_b"].astype(str) + " ×" + rows["factor"].astype(str)
+    if "auto_generated" in rows.columns:
+        rows.loc[rows["auto_generated"].fillna(0).astype(int) == 1, "bet"] += " (auto)"
     rows["kickoff"] = rows["kickoff"].dt.strftime("%Y-%m-%d %H:%M")
     display = rows.pivot_table(
         index=["kickoff", "team_a_name", "team_b_name", "result_a", "result_b"],
@@ -619,12 +621,18 @@ def render_breakdown(db: Database, config: EventConfig, players: list[str], user
     display_points = points.copy()
     bets = cached_load_bets(db, db_key, config.event_id)
     if not bets.empty:
-        bet_scores = bets[["match_id", "username", "score_a", "score_b", "factor"]].copy()
+        bet_columns = ["match_id", "username", "score_a", "score_b", "factor"]
+        if "auto_generated" in bets.columns:
+            bet_columns.append("auto_generated")
+        bet_scores = bets[bet_columns].copy()
         display_points = display_points.merge(bet_scores, on=["match_id", "username"], how="left")
     else:
         display_points["score_a"] = pd.NA
         display_points["score_b"] = pd.NA
         display_points["factor"] = pd.NA
+        display_points["auto_generated"] = 0
+    if "auto_generated" not in display_points.columns:
+        display_points["auto_generated"] = 0
     display_points["kickoff"] = display_points["kickoff_utc"].dt.tz_convert(user_timezone).dt.strftime("%Y-%m-%d %H:%M")
     display_points["match_number"] = display_points["sort_order"].astype(int)
     display_points["match"] = display_points["team_a_name"] + " vs " + display_points["team_b_name"]
@@ -637,6 +645,7 @@ def render_breakdown(db: Database, config: EventConfig, players: list[str], user
         + display_points["factor"].astype("Int64").astype(str)
         + ")"
     )
+    display_points.loc[display_points["auto_generated"].fillna(0).astype(int) == 1, "bet"] += " (auto)"
 
     st.markdown(f"### {t(language, 'match_breakdown')}")
     match_options = (

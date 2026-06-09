@@ -65,6 +65,8 @@ Tipps werden nach Anpfiff sichtbar. Die Tabelle zeigt pro sichtbarem Spiel und S
 Ergebnis x Faktor
 ```
 
+Vom Fallback-Skript erzeugte Tipps werden mit `(auto)` markiert.
+
 Lieblingsteams werden angezeigt, nachdem die Auswahl gesperrt ist.
 
 ### Tab Statistik
@@ -86,6 +88,8 @@ Hier kannst du die Wertung im Detail prüfen:
 - Spiel-Aufschlüsselung: alle Spieler für ein Spiel
 - Spieler-Aufschlüsselung: alle Spiele eines Spielers
 - Punkte-Zusammensetzung: Entwicklung der Punkte nach Komponente
+
+Automatisch erzeugte Fallback-Tipps werden auch hier mit `(auto)` markiert.
 
 ### Tab Heatmaps
 

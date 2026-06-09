@@ -142,6 +142,7 @@ SCHEMA = (
         score_b INTEGER NOT NULL,
         factor INTEGER NOT NULL,
         kanonenwilli INTEGER,
+        auto_generated INTEGER NOT NULL DEFAULT 0,
         submitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (event_id, match_id, username)
     )
@@ -220,3 +221,11 @@ SCHEMA = (
 def ensure_schema(db: Database) -> None:
     for statement in SCHEMA:
         db.execute(statement)
+    _ensure_column(db, "bets", "auto_generated", "INTEGER NOT NULL DEFAULT 0")
+
+
+def _ensure_column(db: Database, table: str, column: str, definition: str) -> None:
+    columns = db.query(f"PRAGMA table_info({table})")
+    if column in {str(row.get("name")) for row in columns}:
+        return
+    db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")

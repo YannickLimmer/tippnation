@@ -119,6 +119,31 @@ still stay conservative. The poller stores local API-FOOTBALL request usage in
 Penalty shootouts use TippNation's convention: the result is the score after 120
 minutes plus one goal for the shootout winner.
 
+## Local Missed-Bet Filler
+
+Missed bets can be filled from the locked pre-game market score distribution by
+running a lightweight local cron. It first checks the event config and
+`data/autobet_state.json`; if no unprocessed match started recently, it does not
+connect to the database. When a newly-started match is due, it locks the latest
+pre-game odds snapshot, samples one score per missing active player from that
+market distribution, and inserts the bet with `auto_generated = 1`. Real user
+bets are never overwritten.
+
+Run once:
+
+```bash
+python -m tippnation.autobet_cli
+```
+
+Run every 5 minutes from cron:
+
+```cron
+*/5 * * * * cd /path/to/tippnation && /usr/bin/python3 -m tippnation.autobet_cli >> /path/to/tippnation/backup/autobet.log 2>&1
+```
+
+Use `--dry-run` to preview generated bets without writing bets or local state.
+By default, only matches that started within the last 30 minutes are considered.
+
 ## GitHub Actions Odds Refresh
 
 `.github/workflows/betfair-odds.yml` runs `python -m tippnation.odds_cli --strict` every hour at minute 45 UTC. Each run logs in to Betfair with certificate authentication when `BETFAIR_USERNAME`, `BETFAIR_PASSWORD`, and cert material are configured, then requests a session keep-alive before it decides whether odds are due. In strict mode, missing credentials, certificate login failures, keep-alive failures, and refresh errors fail the Actions run instead of only printing a warning.

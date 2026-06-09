@@ -4,6 +4,7 @@
 /data/Schedule.csv
 /data/tippnation.sqlite3
 /data/result_poll_state.json
+/data/autobet_state.json
 /data/replay/
 /backup/
 /agent/

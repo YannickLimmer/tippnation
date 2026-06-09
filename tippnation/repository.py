@@ -187,12 +187,13 @@ def set_favorite(db: Database, event_id: str, username: str, team_id: str) -> No
 def upsert_bets(db: Database, event_id: str, username: str, rows: list[dict[str, Any]]) -> None:
     db.executemany(
         """
-        INSERT INTO bets (event_id, match_id, username, score_a, score_b, factor, submitted_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO bets (event_id, match_id, username, score_a, score_b, factor, auto_generated, submitted_at)
+        VALUES (?, ?, ?, ?, ?, ?, 0, ?)
         ON CONFLICT(event_id, match_id, username) DO UPDATE SET
             score_a = excluded.score_a,
             score_b = excluded.score_b,
             factor = excluded.factor,
+            auto_generated = 0,
             submitted_at = excluded.submitted_at
         """,
         [
@@ -208,6 +209,54 @@ def upsert_bets(db: Database, event_id: str, username: str, rows: list[dict[str,
             for row in rows
         ],
     )
+
+
+def insert_auto_bets(db: Database, event_id: str, rows: list[dict[str, Any]]) -> int:
+    if not rows:
+        return 0
+    before = _existing_bet_keys(db, event_id, rows)
+    db.executemany(
+        """
+        INSERT OR IGNORE INTO bets (
+            event_id, match_id, username, score_a, score_b, factor,
+            kanonenwilli, auto_generated, submitted_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, NULL, 1, ?)
+        """,
+        [
+            (
+                event_id,
+                row["match_id"],
+                row["username"],
+                int(row["score_a"]),
+                int(row["score_b"]),
+                int(row["factor"]),
+                str(row["submitted_at"]),
+            )
+            for row in rows
+        ],
+    )
+    after = _existing_bet_keys(db, event_id, rows)
+    return len(after - before)
+
+
+def _existing_bet_keys(db: Database, event_id: str, rows: list[dict[str, Any]]) -> set[tuple[str, str]]:
+    keys = {(str(row["match_id"]), str(row["username"])) for row in rows}
+    if not keys:
+        return set()
+    values = []
+    for match_id, username in keys:
+        values.extend([match_id, username])
+    predicate = " OR ".join("(match_id = ? AND username = ?)" for _ in keys)
+    existing = db.query(
+        f"""
+        SELECT match_id, username
+        FROM bets
+        WHERE event_id = ? AND ({predicate})
+        """,
+        (event_id, *values),
+    )
+    return {(str(row["match_id"]), str(row["username"])) for row in existing}
 
 
 def update_results(db: Database, event_id: str, rows: list[dict[str, Any]]) -> None:
