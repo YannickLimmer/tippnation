@@ -110,7 +110,7 @@
       "group_name": "A",
       "team_a_id": "MEX",
       "team_b_id": "RSA",
-      "venue": null
+      "venue": "Estadio Azteca, Mexico City"
     },
     {
       "match_id": "A2",
@@ -119,7 +119,7 @@
       "group_name": "A",
       "team_a_id": "KOR",
       "team_b_id": "CZE",
-      "venue": null
+      "venue": "Estadio Akron, Zapopan"
     },
     {
       "match_id": "B1",
@@ -128,7 +128,7 @@
       "group_name": "B",
       "team_a_id": "CAN",
       "team_b_id": "BIH",
-      "venue": null
+      "venue": "BMO Field, Toronto"
     },
     {
       "match_id": "D1",
@@ -137,7 +137,7 @@
       "group_name": "D",
       "team_a_id": "USA",
       "team_b_id": "PAR",
-      "venue": null
+      "venue": "SoFi Stadium, Inglewood"
     },
     {
       "match_id": "B2",
@@ -146,7 +146,7 @@
       "group_name": "B",
       "team_a_id": "QAT",
       "team_b_id": "SUI",
-      "venue": null
+      "venue": "Levi's Stadium, Santa Clara"
     },
     {
       "match_id": "C1",
@@ -155,7 +155,7 @@
       "group_name": "C",
       "team_a_id": "BRA",
       "team_b_id": "MAR",
-      "venue": null
+      "venue": "Gillette Stadium, Foxborough"
     },
     {
       "match_id": "C2",
@@ -164,7 +164,7 @@
       "group_name": "C",
       "team_a_id": "HAI",
       "team_b_id": "SCO",
-      "venue": null
+      "venue": "MetLife Stadium, East Rutherford"
     },
     {
       "match_id": "D2",
@@ -173,7 +173,7 @@
       "group_name": "D",
       "team_a_id": "AUS",
       "team_b_id": "TUR",
-      "venue": null
+      "venue": "BC Place, Vancouver"
     },
     {
       "match_id": "E1",
@@ -182,7 +182,7 @@
       "group_name": "E",
       "team_a_id": "GER",
       "team_b_id": "CUW",
-      "venue": null
+      "venue": "NRG Stadium, Houston"
     },
     {
       "match_id": "F1",
@@ -191,7 +191,7 @@
       "group_name": "F",
       "team_a_id": "NED",
       "team_b_id": "JPN",
-      "venue": null
+      "venue": "AT&T Stadium, Arlington"
     },
     {
       "match_id": "E2",
@@ -200,7 +200,7 @@
       "group_name": "E",
       "team_a_id": "CIV",
       "team_b_id": "ECU",
-      "venue": null
+      "venue": "Lincoln Financial Field, Philadelphia"
     },
     {
       "match_id": "F2",
@@ -209,43 +209,43 @@
       "group_name": "F",
       "team_a_id": "SWE",
       "team_b_id": "TUN",
-      "venue": null
-    },
-    {
-      "match_id": "G1",
-      "sort_order": 13,
-      "kickoff_utc": "2026-06-15T16:00:00+00:00",
-      "group_name": "G",
-      "team_a_id": "ESP",
-      "team_b_id": "CPV",
-      "venue": null
+      "venue": "Estadio BBVA, Guadalupe"
     },
     {
       "match_id": "H1",
-      "sort_order": 14,
-      "kickoff_utc": "2026-06-15T19:00:00+00:00",
+      "sort_order": 13,
+      "kickoff_utc": "2026-06-15T16:00:00+00:00",
       "group_name": "H",
-      "team_a_id": "BEL",
-      "team_b_id": "EGY",
-      "venue": null
+      "team_a_id": "ESP",
+      "team_b_id": "CPV",
+      "venue": "Mercedes-Benz Stadium, Atlanta"
     },
     {
-      "match_id": "G2",
-      "sort_order": 15,
-      "kickoff_utc": "2026-06-15T22:00:00+00:00",
+      "match_id": "G1",
+      "sort_order": 14,
+      "kickoff_utc": "2026-06-15T19:00:00+00:00",
       "group_name": "G",
-      "team_a_id": "KSA",
-      "team_b_id": "URU",
-      "venue": null
+      "team_a_id": "BEL",
+      "team_b_id": "EGY",
+      "venue": "Lumen Field, Seattle"
     },
     {
       "match_id": "H2",
+      "sort_order": 15,
+      "kickoff_utc": "2026-06-15T22:00:00+00:00",
+      "group_name": "H",
+      "team_a_id": "KSA",
+      "team_b_id": "URU",
+      "venue": "Hard Rock Stadium, Miami Gardens"
+    },
+    {
+      "match_id": "G2",
       "sort_order": 16,
       "kickoff_utc": "2026-06-16T01:00:00+00:00",
-      "group_name": "H",
+      "group_name": "G",
       "team_a_id": "IRN",
       "team_b_id": "NZL",
-      "venue": null
+      "venue": "SoFi Stadium, Inglewood"
     },
     {
       "match_id": "I1",
@@ -254,7 +254,7 @@
       "group_name": "I",
       "team_a_id": "FRA",
       "team_b_id": "SEN",
-      "venue": null
+      "venue": "MetLife Stadium, East Rutherford"
     },
     {
       "match_id": "I2",
@@ -263,7 +263,7 @@
       "group_name": "I",
       "team_a_id": "IRQ",
       "team_b_id": "NOR",
-      "venue": null
+      "venue": "Gillette Stadium, Foxborough"
     },
     {
       "match_id": "J1",
@@ -272,7 +272,7 @@
       "group_name": "J",
       "team_a_id": "ARG",
       "team_b_id": "ALG",
-      "venue": null
+      "venue": "Arrowhead Stadium, Kansas City"
     },
     {
       "match_id": "J2",
@@ -281,7 +281,7 @@
       "group_name": "J",
       "team_a_id": "AUT",
       "team_b_id": "JOR",
-      "venue": null
+      "venue": "Levi's Stadium, Santa Clara"
     },
     {
       "match_id": "K1",
@@ -290,7 +290,7 @@
       "group_name": "K",
       "team_a_id": "POR",
       "team_b_id": "COD",
-      "venue": null
+      "venue": "NRG Stadium, Houston"
     },
     {
       "match_id": "L1",
@@ -299,7 +299,7 @@
       "group_name": "L",
       "team_a_id": "ENG",
       "team_b_id": "CRO",
-      "venue": null
+      "venue": "AT&T Stadium, Arlington"
     },
     {
       "match_id": "L2",
@@ -308,7 +308,7 @@
       "group_name": "L",
       "team_a_id": "GHA",
       "team_b_id": "PAN",
-      "venue": null
+      "venue": "BMO Field, Toronto"
     },
     {
       "match_id": "K2",
@@ -317,7 +317,7 @@
       "group_name": "K",
       "team_a_id": "UZB",
       "team_b_id": "COL",
-      "venue": null
+      "venue": "Estadio Azteca, Mexico City"
     },
     {
       "match_id": "A3",
@@ -326,7 +326,7 @@
       "group_name": "A",
       "team_a_id": "CZE",
       "team_b_id": "RSA",
-      "venue": null
+      "venue": "Mercedes-Benz Stadium, Atlanta"
     },
     {
       "match_id": "B3",
@@ -335,7 +335,7 @@
       "group_name": "B",
       "team_a_id": "SUI",
       "team_b_id": "BIH",
-      "venue": null
+      "venue": "SoFi Stadium, Inglewood"
     },
     {
       "match_id": "B4",
@@ -344,7 +344,7 @@
       "group_name": "B",
       "team_a_id": "CAN",
       "team_b_id": "QAT",
-      "venue": null
+      "venue": "BC Place, Vancouver"
     },
     {
       "match_id": "A4",
@@ -353,7 +353,7 @@
       "group_name": "A",
       "team_a_id": "MEX",
       "team_b_id": "KOR",
-      "venue": null
+      "venue": "Estadio Akron, Zapopan"
     },
     {
       "match_id": "D3",
@@ -362,7 +362,7 @@
       "group_name": "D",
       "team_a_id": "USA",
       "team_b_id": "AUS",
-      "venue": null
+      "venue": "Lumen Field, Seattle"
     },
     {
       "match_id": "C3",
@@ -371,7 +371,7 @@
       "group_name": "C",
       "team_a_id": "SCO",
       "team_b_id": "MAR",
-      "venue": null
+      "venue": "Lincoln Financial Field, Philadelphia"
     },
     {
       "match_id": "C4",
@@ -380,7 +380,7 @@
       "group_name": "C",
       "team_a_id": "BRA",
       "team_b_id": "HAI",
-      "venue": null
+      "venue": "Gillette Stadium, Foxborough"
     },
     {
       "match_id": "D4",
@@ -389,7 +389,7 @@
       "group_name": "D",
       "team_a_id": "TUR",
       "team_b_id": "PAR",
-      "venue": null
+      "venue": "Levi's Stadium, Santa Clara"
     },
     {
       "match_id": "F3",
@@ -398,7 +398,7 @@
       "group_name": "F",
       "team_a_id": "NED",
       "team_b_id": "SWE",
-      "venue": null
+      "venue": "NRG Stadium, Houston"
     },
     {
       "match_id": "E3",
@@ -407,7 +407,7 @@
       "group_name": "E",
       "team_a_id": "GER",
       "team_b_id": "CIV",
-      "venue": null
+      "venue": "BMO Field, Toronto"
     },
     {
       "match_id": "E4",
@@ -416,7 +416,7 @@
       "group_name": "E",
       "team_a_id": "ECU",
       "team_b_id": "CUW",
-      "venue": null
+      "venue": "Arrowhead Stadium, Kansas City"
     },
     {
       "match_id": "F4",
@@ -425,43 +425,43 @@
       "group_name": "F",
       "team_a_id": "TUN",
       "team_b_id": "JPN",
-      "venue": null
-    },
-    {
-      "match_id": "G3",
-      "sort_order": 37,
-      "kickoff_utc": "2026-06-21T16:00:00+00:00",
-      "group_name": "G",
-      "team_a_id": "ESP",
-      "team_b_id": "KSA",
-      "venue": null
+      "venue": "Estadio BBVA, Guadalupe"
     },
     {
       "match_id": "H3",
-      "sort_order": 38,
-      "kickoff_utc": "2026-06-21T19:00:00+00:00",
+      "sort_order": 37,
+      "kickoff_utc": "2026-06-21T16:00:00+00:00",
       "group_name": "H",
-      "team_a_id": "BEL",
-      "team_b_id": "IRN",
-      "venue": null
+      "team_a_id": "ESP",
+      "team_b_id": "KSA",
+      "venue": "Mercedes-Benz Stadium, Atlanta"
     },
     {
-      "match_id": "G4",
-      "sort_order": 39,
-      "kickoff_utc": "2026-06-21T22:00:00+00:00",
+      "match_id": "G3",
+      "sort_order": 38,
+      "kickoff_utc": "2026-06-21T19:00:00+00:00",
       "group_name": "G",
-      "team_a_id": "URU",
-      "team_b_id": "CPV",
-      "venue": null
+      "team_a_id": "BEL",
+      "team_b_id": "IRN",
+      "venue": "SoFi Stadium, Inglewood"
     },
     {
       "match_id": "H4",
+      "sort_order": 39,
+      "kickoff_utc": "2026-06-21T22:00:00+00:00",
+      "group_name": "H",
+      "team_a_id": "URU",
+      "team_b_id": "CPV",
+      "venue": "Hard Rock Stadium, Miami Gardens"
+    },
+    {
+      "match_id": "G4",
       "sort_order": 40,
       "kickoff_utc": "2026-06-22T01:00:00+00:00",
-      "group_name": "H",
+      "group_name": "G",
       "team_a_id": "NZL",
       "team_b_id": "EGY",
-      "venue": null
+      "venue": "BC Place, Vancouver"
     },
     {
       "match_id": "J3",
@@ -470,7 +470,7 @@
       "group_name": "J",
       "team_a_id": "ARG",
       "team_b_id": "AUT",
-      "venue": null
+      "venue": "AT&T Stadium, Arlington"
     },
     {
       "match_id": "I3",
@@ -479,7 +479,7 @@
       "group_name": "I",
       "team_a_id": "FRA",
       "team_b_id": "IRQ",
-      "venue": null
+      "venue": "Lincoln Financial Field, Philadelphia"
     },
     {
       "match_id": "I4",
@@ -488,7 +488,7 @@
       "group_name": "I",
       "team_a_id": "NOR",
       "team_b_id": "SEN",
-      "venue": null
+      "venue": "MetLife Stadium, East Rutherford"
     },
     {
       "match_id": "J4",
@@ -497,7 +497,7 @@
       "group_name": "J",
       "team_a_id": "JOR",
       "team_b_id": "ALG",
-      "venue": null
+      "venue": "Levi's Stadium, Santa Clara"
     },
     {
       "match_id": "K3",
@@ -506,7 +506,7 @@
       "group_name": "K",
       "team_a_id": "POR",
       "team_b_id": "UZB",
-      "venue": null
+      "venue": "NRG Stadium, Houston"
     },
     {
       "match_id": "L3",
@@ -515,7 +515,7 @@
       "group_name": "L",
       "team_a_id": "ENG",
       "team_b_id": "GHA",
-      "venue": null
+      "venue": "Gillette Stadium, Foxborough"
     },
     {
       "match_id": "L4",
@@ -524,7 +524,7 @@
       "group_name": "L",
       "team_a_id": "PAN",
       "team_b_id": "CRO",
-      "venue": null
+      "venue": "BMO Field, Toronto"
     },
     {
       "match_id": "K4",
@@ -533,7 +533,7 @@
       "group_name": "K",
       "team_a_id": "COL",
       "team_b_id": "COD",
-      "venue": null
+      "venue": "Estadio Akron, Zapopan"
     },
     {
       "match_id": "B5",
@@ -542,7 +542,7 @@
       "group_name": "B",
       "team_a_id": "BIH",
       "team_b_id": "QAT",
-      "venue": null
+      "venue": "Lumen Field, Seattle"
     },
     {
       "match_id": "B6",
@@ -551,7 +551,7 @@
       "group_name": "B",
       "team_a_id": "SUI",
       "team_b_id": "CAN",
-      "venue": null
+      "venue": "BC Place, Vancouver"
     },
     {
       "match_id": "C5",
@@ -560,7 +560,7 @@
       "group_name": "C",
       "team_a_id": "MAR",
       "team_b_id": "HAI",
-      "venue": null
+      "venue": "Mercedes-Benz Stadium, Atlanta"
     },
     {
       "match_id": "C6",
@@ -569,7 +569,7 @@
       "group_name": "C",
       "team_a_id": "SCO",
       "team_b_id": "BRA",
-      "venue": null
+      "venue": "Hard Rock Stadium, Miami Gardens"
     },
     {
       "match_id": "A5",
@@ -578,7 +578,7 @@
       "group_name": "A",
       "team_a_id": "CZE",
       "team_b_id": "MEX",
-      "venue": null
+      "venue": "Estadio Azteca, Mexico City"
     },
     {
       "match_id": "A6",
@@ -587,7 +587,7 @@
       "group_name": "A",
       "team_a_id": "RSA",
       "team_b_id": "KOR",
-      "venue": null
+      "venue": "Estadio BBVA, Guadalupe"
     },
     {
       "match_id": "E5",
@@ -596,7 +596,7 @@
       "group_name": "E",
       "team_a_id": "CUW",
       "team_b_id": "CIV",
-      "venue": null
+      "venue": "Lincoln Financial Field, Philadelphia"
     },
     {
       "match_id": "E6",
@@ -605,7 +605,7 @@
       "group_name": "E",
       "team_a_id": "ECU",
       "team_b_id": "GER",
-      "venue": null
+      "venue": "MetLife Stadium, East Rutherford"
     },
     {
       "match_id": "F5",
@@ -614,7 +614,7 @@
       "group_name": "F",
       "team_a_id": "TUN",
       "team_b_id": "NED",
-      "venue": null
+      "venue": "Arrowhead Stadium, Kansas City"
     },
     {
       "match_id": "F6",
@@ -623,7 +623,7 @@
       "group_name": "F",
       "team_a_id": "JPN",
       "team_b_id": "SWE",
-      "venue": null
+      "venue": "AT&T Stadium, Arlington"
     },
     {
       "match_id": "D5",
@@ -632,7 +632,7 @@
       "group_name": "D",
       "team_a_id": "TUR",
       "team_b_id": "USA",
-      "venue": null
+      "venue": "SoFi Stadium, Inglewood"
     },
     {
       "match_id": "D6",
@@ -641,7 +641,7 @@
       "group_name": "D",
       "team_a_id": "PAR",
       "team_b_id": "AUS",
-      "venue": null
+      "venue": "Levi's Stadium, Santa Clara"
     },
     {
       "match_id": "I5",
@@ -650,7 +650,7 @@
       "group_name": "I",
       "team_a_id": "NOR",
       "team_b_id": "FRA",
-      "venue": null
+      "venue": "Gillette Stadium, Foxborough"
     },
     {
       "match_id": "I6",
@@ -659,43 +659,43 @@
       "group_name": "I",
       "team_a_id": "SEN",
       "team_b_id": "IRQ",
-      "venue": null
-    },
-    {
-      "match_id": "G5",
-      "sort_order": 63,
-      "kickoff_utc": "2026-06-27T00:00:00+00:00",
-      "group_name": "G",
-      "team_a_id": "CPV",
-      "team_b_id": "KSA",
-      "venue": null
-    },
-    {
-      "match_id": "G6",
-      "sort_order": 64,
-      "kickoff_utc": "2026-06-27T00:00:00+00:00",
-      "group_name": "G",
-      "team_a_id": "URU",
-      "team_b_id": "ESP",
-      "venue": null
+      "venue": "BMO Field, Toronto"
     },
     {
       "match_id": "H5",
-      "sort_order": 65,
-      "kickoff_utc": "2026-06-27T03:00:00+00:00",
+      "sort_order": 63,
+      "kickoff_utc": "2026-06-27T00:00:00+00:00",
       "group_name": "H",
-      "team_a_id": "NZL",
-      "team_b_id": "BEL",
-      "venue": null
+      "team_a_id": "CPV",
+      "team_b_id": "KSA",
+      "venue": "NRG Stadium, Houston"
     },
     {
       "match_id": "H6",
+      "sort_order": 64,
+      "kickoff_utc": "2026-06-27T00:00:00+00:00",
+      "group_name": "H",
+      "team_a_id": "URU",
+      "team_b_id": "ESP",
+      "venue": "Estadio Akron, Zapopan"
+    },
+    {
+      "match_id": "G5",
+      "sort_order": 65,
+      "kickoff_utc": "2026-06-27T03:00:00+00:00",
+      "group_name": "G",
+      "team_a_id": "NZL",
+      "team_b_id": "BEL",
+      "venue": "BC Place, Vancouver"
+    },
+    {
+      "match_id": "G6",
       "sort_order": 66,
       "kickoff_utc": "2026-06-27T03:00:00+00:00",
-      "group_name": "H",
+      "group_name": "G",
       "team_a_id": "EGY",
       "team_b_id": "IRN",
-      "venue": null
+      "venue": "Lumen Field, Seattle"
     },
     {
       "match_id": "L5",
@@ -704,7 +704,7 @@
       "group_name": "L",
       "team_a_id": "PAN",
       "team_b_id": "ENG",
-      "venue": null
+      "venue": "MetLife Stadium, East Rutherford"
     },
     {
       "match_id": "L6",
@@ -713,7 +713,7 @@
       "group_name": "L",
       "team_a_id": "CRO",
       "team_b_id": "GHA",
-      "venue": null
+      "venue": "Lincoln Financial Field, Philadelphia"
     },
     {
       "match_id": "K5",
@@ -722,7 +722,7 @@
       "group_name": "K",
       "team_a_id": "COD",
       "team_b_id": "UZB",
-      "venue": null
+      "venue": "Mercedes-Benz Stadium, Atlanta"
     },
     {
       "match_id": "K6",
@@ -731,7 +731,7 @@
       "group_name": "K",
       "team_a_id": "COL",
       "team_b_id": "POR",
-      "venue": null
+      "venue": "Hard Rock Stadium, Miami Gardens"
     },
     {
       "match_id": "J5",
@@ -740,7 +740,7 @@
       "group_name": "J",
       "team_a_id": "JOR",
       "team_b_id": "ARG",
-      "venue": null
+      "venue": "AT&T Stadium, Arlington"
     },
     {
       "match_id": "J6",
@@ -749,7 +749,7 @@
       "group_name": "J",
       "team_a_id": "ALG",
       "team_b_id": "AUT",
-      "venue": null
+      "venue": "Arrowhead Stadium, Kansas City"
     }
   ],
   "schedule_template": {
@@ -826,5 +826,9 @@
   "betfair": {
     "event_type_id": "1",
     "competition_id": "12469077"
+  },
+  "api_football": {
+    "league_id": "1",
+    "season": "2026"
   }
 }

@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_EVENT_CONFIG = ROOT / "data" / "events" / "international_friendlies_trial_2026.json"
+DEFAULT_EVENT_CONFIG = ROOT / "data" / "events" / "world_cup_2026.json"
 
 
 @dataclass(frozen=True)

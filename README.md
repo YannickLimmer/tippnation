@@ -9,8 +9,8 @@ TippNation is a small Streamlit betting game for a closed World Cup group.
 - `tippnation/admin.py` exposes Python admin functions for database initialization, result updates, and point computation.
 - `tippnation/odds_cli.py` refreshes Betfair odds from a local machine and writes snapshots to the configured database.
 - `tippnation/scoring.py` contains the point rules and stores computed results in the database.
-- `data/events/international_friendlies_trial_2026.json` is the temporary default trial event.
-- `data/events/world_cup_2026.json` is the World Cup 2026 event bundle. It remains checked in for switching back after the trial.
+- `data/events/world_cup_2026.json` is the default World Cup 2026 event bundle.
+- `data/events/international_friendlies_trial_2026.json` is the completed temporary trial event.
 - `docs/` contains user-facing manuals loaded by the app help tab.
 - `legacy/` contains the old CSV/Sheets implementation.
 
@@ -104,7 +104,9 @@ no stored score, regardless of the normal live/final-settle window.
 `--provider auto` prefers API-FOOTBALL when `API_FOOTBALL_KEY` is configured and
 the event has `api_football` metadata; otherwise it falls back to TheSportsDB.
 API-FOOTBALL event configs can include `api_football.league_id`, `season`, and
-per-match `api_football_fixture_id` values. The friendlies trial has a complete
+per-match `api_football_fixture_id` values. The World Cup event uses
+`league_id = 1` and `season = 2026`; add per-match fixture IDs once verified.
+The friendlies trial has a complete
 API-FOOTBALL map: `league_id = 10`, `season = 2026`, and all 28 fixture IDs.
 With fixture IDs, up to 20 matches are refreshed in one API request. TheSportsDB's
 public v1 free key defaults to `123`; pass `--api-key` if you use a personal key.
@@ -116,9 +118,6 @@ still stay conservative. The poller stores local API-FOOTBALL request usage in
 
 Penalty shootouts use TippNation's convention: the result is the score after 120
 minutes plus one goal for the shootout winner.
-
-After the friendlies trial, switch `DEFAULT_EVENT_CONFIG` in `tippnation/config.py`
-back to `data/events/world_cup_2026.json`.
 
 ## GitHub Actions Odds Refresh
 
