@@ -763,7 +763,30 @@ def render_heatmaps(db: Database, config: EventConfig, players: list[str], langu
 def render_help(language: str) -> None:
     manual = "docs/MANUAL_DE.md" if language == "de" else "docs/MANUAL_EN.md"
     if Path(manual).exists():
-        st.markdown(Path(manual).read_text(encoding="utf-8"))
+        render_markdown_with_local_images(Path(manual))
+
+
+def render_markdown_with_local_images(path: Path) -> None:
+    image_markers = {
+        "![Kanonenwilli](Bullet_Bill.png)": path.parent / "Bullet_Bill.png",
+        "![Kanonenwilli](data/figs/Bullet_Bill.png)": Path("data/figs/Bullet_Bill.png"),
+    }
+    remaining = path.read_text(encoding="utf-8")
+    while remaining:
+        marker_positions = [(remaining.find(marker), marker, image_path) for marker, image_path in image_markers.items()]
+        marker_positions = [(index, marker, image_path) for index, marker, image_path in marker_positions if index >= 0]
+        if not marker_positions:
+            st.markdown(remaining)
+            return
+        index, marker, image_path = min(marker_positions, key=lambda item: item[0])
+        before = remaining[:index]
+        if before.strip():
+            st.markdown(before)
+        if image_path.exists():
+            st.image(str(image_path), width=220)
+        else:
+            st.warning(f"Missing image: {image_path}")
+        remaining = remaining[index + len(marker) :]
 
 
 def render_admin(
