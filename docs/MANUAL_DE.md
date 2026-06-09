@@ -269,7 +269,7 @@ favorite =
 
 ## Kanonenwilli
 
-![Kanonenwilli](data/figs/Bullet_Bill.png)
+![Kanonenwilli](Bullet_Bill.png)
 
 Kanonenwilli ist ein Comeback-Mechanismus. Er wird automatisch und deterministisch von der App vergeben.
 
