@@ -52,6 +52,19 @@ POINT_DISPLAY_COLUMNS = ["base", "fbase", "exotic", "favorite", "kanonenwilli", 
 POINT_COMPOSITION_COLUMNS = ["fbase", "exotic", "favorite", "kanonenwilli"]
 
 
+def rule_for_round(config: EventConfig, round_name: str):
+    return config.rules.get(str(round_name), config.rules.get("knockout", config.rules["group"]))
+
+
+def factor_budget_for_matches(config: EventConfig, matches: pd.DataFrame) -> int:
+    return int(sum(rule_for_round(config, str(match.round_name)).max_factor for match in matches.itertuples(index=False)))
+
+
+def factor_max_for_match(match_id: str, values: dict[str, int], budget: int) -> int:
+    used_by_others = sum(value for other_match_id, value in values.items() if other_match_id != match_id)
+    return max(1, int(budget) - int(used_by_others))
+
+
 @st.cache_resource(show_spinner=False)
 def get_database(config_path: str, replay_snapshot: str | None) -> Database:
     if replay_snapshot:
@@ -409,71 +422,104 @@ def render_bets(db: Database, config: EventConfig, players: list[str], username:
     bets = cached_load_user_bets(db, db_key, config.event_id, username)
     own_bets = bets.set_index("match_id") if not bets.empty else pd.DataFrame()
 
+    selected_matches = list(selected.itertuples(index=False))
+    factor_budget = factor_budget_for_matches(config, selected)
+    factor_values: dict[str, int] = {}
+    for match in selected_matches:
+        factor_key = f"factor_{match.match_id}"
+        existing = own_bets.loc[match.match_id] if match.match_id in own_bets.index else None
+        default_factor = int(existing["factor"]) if existing is not None else 1
+        current_factor = int(st.session_state.get(factor_key, default_factor))
+        factor_values[str(match.match_id)] = max(1, current_factor)
+
     editable_rows = []
-    factor_sum = 0
-    max_factor_sum = 0
-    form_key = f"bets_form_{config.event_id}_{username}_{selected_date.isoformat()}"
-    with st.form(form_key):
-        for match in selected.itertuples(index=False):
-            rule = config.rules.get(str(match.round_name), config.rules.get("knockout", config.rules["group"]))
-            max_factor_sum += rule.max_factor
-            is_locked = match.kickoff_utc.to_pydatetime() <= now_utc()
-            existing = own_bets.loc[match.match_id] if match.match_id in own_bets.index else None
-            with st.container(border=True):
-                st.markdown(
-                    f"**{match.team_a_name} vs {match.team_b_name}** · "
-                    f"{match.kickoff.strftime('%H:%M')} · {match.round_name}"
+    for match in selected_matches:
+        is_locked = match.kickoff_utc.to_pydatetime() <= now_utc()
+        existing = own_bets.loc[match.match_id] if match.match_id in own_bets.index else None
+        factor_key = f"factor_{match.match_id}"
+        current_factor = factor_values[str(match.match_id)]
+        max_factor = current_factor if is_locked else factor_max_for_match(str(match.match_id), factor_values, factor_budget)
+        if not is_locked and current_factor > max_factor:
+            current_factor = max_factor
+            factor_values[str(match.match_id)] = current_factor
+            st.session_state[factor_key] = current_factor
+
+        with st.container(border=True):
+            st.markdown(
+                f"**{match.team_a_name} vs {match.team_b_name}** · "
+                f"{match.kickoff.strftime('%H:%M')} · {match.round_name}"
+            )
+            cols = st.columns([1, 1, 2])
+            score_a = cols[0].number_input(
+                match.team_a_name,
+                min_value=0,
+                max_value=30,
+                value=int(existing["score_a"]) if existing is not None else 0,
+                disabled=is_locked,
+                key=f"score_a_{match.match_id}",
+            )
+            score_b = cols[1].number_input(
+                match.team_b_name,
+                min_value=0,
+                max_value=30,
+                value=int(existing["score_b"]) if existing is not None else 0,
+                disabled=is_locked,
+                key=f"score_b_{match.match_id}",
+            )
+            if is_locked:
+                factor = cols[2].number_input(
+                    "Factor",
+                    min_value=current_factor,
+                    max_value=current_factor,
+                    value=current_factor,
+                    disabled=True,
+                    key=f"{factor_key}_locked",
                 )
-                cols = st.columns([1, 1, 2])
-                score_a = cols[0].number_input(
-                    match.team_a_name,
-                    min_value=0,
-                    max_value=30,
-                    value=int(existing["score_a"]) if existing is not None else 0,
-                    disabled=is_locked,
-                    key=f"score_a_{match.match_id}",
+            elif max_factor == 1:
+                st.session_state[factor_key] = 1
+                factor = cols[2].number_input(
+                    "Factor",
+                    min_value=1,
+                    max_value=1,
+                    value=1,
+                    disabled=True,
+                    key=f"{factor_key}_fixed",
                 )
-                score_b = cols[1].number_input(
-                    match.team_b_name,
-                    min_value=0,
-                    max_value=30,
-                    value=int(existing["score_b"]) if existing is not None else 0,
-                    disabled=is_locked,
-                    key=f"score_b_{match.match_id}",
-                )
+            else:
                 factor = cols[2].slider(
                     "Factor",
                     min_value=1,
-                    max_value=rule.max_factor,
-                    value=int(existing["factor"]) if existing is not None else 1,
+                    max_value=max_factor,
+                    value=current_factor,
                     disabled=is_locked,
-                    key=f"factor_{match.match_id}",
+                    key=factor_key,
                 )
-                factor_sum += int(factor)
-                if is_locked:
-                    st.caption(t(language, "past_locked"))
-                else:
-                    render_score_probability_table(db, config, pd.Series(match._asdict()), language)
-                    editable_rows.append(
-                        {
-                            "match_id": match.match_id,
-                            "score_a": int(score_a),
-                            "score_b": int(score_b),
-                            "factor": int(factor),
-                        }
-                    )
+            factor_values[str(match.match_id)] = int(factor)
+            if is_locked:
+                st.caption(t(language, "past_locked"))
+            else:
+                render_score_probability_table(db, config, pd.Series(match._asdict()), language)
+                editable_rows.append(
+                    {
+                        "match_id": match.match_id,
+                        "score_a": int(score_a),
+                        "score_b": int(score_b),
+                        "factor": int(factor),
+                    }
+                )
 
-        st.caption(f"{t(language, 'factor_budget')}: {factor_sum} / {max_factor_sum}")
-        submitted = st.form_submit_button(
-            t(language, "submit_bets"),
-            type="primary",
-            disabled=not editable_rows,
-            width="stretch",
-        )
+    factor_sum = sum(factor_values.values())
+    st.caption(f"{t(language, 'factor_budget')}: {factor_sum} / {factor_budget}")
+    submitted = st.button(
+        t(language, "submit_bets"),
+        type="primary",
+        disabled=not editable_rows,
+        width="stretch",
+    )
 
     if editable_rows and submitted:
-        if factor_sum > max_factor_sum:
-            st.warning(f"{t(language, 'factor_budget')}: {factor_sum} / {max_factor_sum}")
+        if factor_sum > factor_budget:
+            st.warning(f"{t(language, 'factor_budget')}: {factor_sum} / {factor_budget}")
             return
         upsert_bets(db, config.event_id, username, editable_rows)
         cached_load_bets.clear()
@@ -707,11 +753,8 @@ def render_heatmaps(db: Database, config: EventConfig, players: list[str], langu
 
 def render_help(language: str) -> None:
     manual = "docs/MANUAL_DE.md" if language == "de" else "docs/MANUAL_EN.md"
-    instructions = "docs/Instructions_DE.md" if language == "de" else "docs/Instructions_EN.md"
-    for path in (manual, instructions):
-        if Path(path).exists():
-            with st.expander(path):
-                st.markdown(Path(path).read_text(encoding="utf-8"))
+    if Path(manual).exists():
+        st.markdown(Path(manual).read_text(encoding="utf-8"))
 
 
 def render_admin(
