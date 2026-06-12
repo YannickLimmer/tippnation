@@ -48,6 +48,7 @@ from tippnation.secrets import (
 
 
 READ_REFRESH_INTERVAL = "60s"
+BETTING_DAY_TIMEZONE = ZoneInfo("America/New_York")
 POINT_DISPLAY_COLUMNS = ["base", "fbase", "exotic", "favorite", "kanonenwilli", "final"]
 POINT_COMPOSITION_COLUMNS = ["fbase", "exotic", "favorite", "kanonenwilli"]
 
@@ -216,11 +217,23 @@ def localize_match_times(df: pd.DataFrame, user_timezone: ZoneInfo) -> pd.DataFr
     local = df.copy()
     local["kickoff"] = local["kickoff_utc"].dt.tz_convert(user_timezone)
     local["date"] = local["kickoff"].dt.date
+    local["betting_day"] = local["kickoff_utc"].dt.tz_convert(BETTING_DAY_TIMEZONE).dt.date
+    local["kickoff_label"] = local.apply(_kickoff_label, axis=1)
     return local
 
 
-def current_local_date(user_timezone: ZoneInfo) -> date:
-    return pd.Timestamp(now_utc()).tz_convert(user_timezone).date()
+def _kickoff_label(match: pd.Series) -> str:
+    label = match["kickoff"].strftime("%H:%M")
+    day_offset = (match["date"] - match["betting_day"]).days
+    if day_offset > 0:
+        label += f"+{day_offset}"
+    elif day_offset < 0:
+        label += str(day_offset)
+    return label
+
+
+def current_betting_date() -> date:
+    return pd.Timestamp(now_utc()).tz_convert(BETTING_DAY_TIMEZONE).date()
 
 
 def first_kickoff_utc(config: EventConfig) -> datetime:
@@ -231,11 +244,11 @@ def favorites_locked(config: EventConfig) -> bool:
     return now_utc() >= first_kickoff_utc(config)
 
 
-def default_match_date(matches: pd.DataFrame, user_timezone: ZoneInfo) -> date | None:
+def default_match_date(matches: pd.DataFrame) -> date | None:
     if matches.empty:
         return None
-    dates = sorted(matches["date"].unique())
-    today = current_local_date(user_timezone)
+    dates = sorted(matches["betting_day"].unique())
+    today = current_betting_date()
     return next((date for date in dates if date >= today), dates[-1])
 
 
@@ -412,8 +425,9 @@ def render_bets(db: Database, config: EventConfig, players: list[str], username:
     db_key = database_cache_key(db)
     user_timezone = browser_timezone(config)
     matches = localize_match_times(cached_load_matches(db, db_key, config.event_id), user_timezone)
-    selected_date = st.date_input(t(language, "select_date"), value=default_match_date(matches, user_timezone))
-    selected = matches[matches["date"] == selected_date].copy()
+    selected_date = st.date_input(t(language, "select_date"), value=default_match_date(matches))
+    st.caption(t(language, "betting_day_timezone"))
+    selected = matches[matches["betting_day"] == selected_date].sort_values("kickoff_utc").copy()
     if selected.empty:
         render_status()
         st.info(t(language, "no_matches"))
@@ -447,7 +461,7 @@ def render_bets(db: Database, config: EventConfig, players: list[str], username:
         with st.container(border=True):
             st.markdown(
                 f"**{match.team_a_name} vs {match.team_b_name}** · "
-                f"{match.kickoff.strftime('%H:%M')} · {match.round_name}"
+                f"{match.kickoff_label} · {match.round_name}"
             )
             cols = st.columns([1, 1, 2])
             score_a = cols[0].number_input(
