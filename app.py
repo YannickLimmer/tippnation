@@ -48,7 +48,7 @@ from tippnation.secrets import (
 
 
 READ_REFRESH_INTERVAL = "60s"
-BETTING_DAY_TIMEZONE = ZoneInfo("America/New_York")
+BETTING_DAY_TIMEZONE = ZoneInfo("America/Los_Angeles")
 POINT_DISPLAY_COLUMNS = ["base", "fbase", "exotic", "favorite", "kanonenwilli", "final"]
 POINT_COMPOSITION_COLUMNS = ["fbase", "exotic", "favorite", "kanonenwilli"]
 
@@ -846,6 +846,89 @@ def render_admin(
         cached_load_match_bet_usernames.clear()
         cached_load_points.clear()
         st.success(f"{t(language, 'points_saved')} ({len(points)} rows)")
+
+    st.markdown("### Bet override")
+    localized_matches = localize_match_times(matches, browser_timezone(config))
+    match_options = localized_matches.copy()
+    match_options["label"] = (
+        match_options["match_id"].astype(str)
+        + " · "
+        + match_options["kickoff"].dt.strftime("%Y-%m-%d ")
+        + match_options["kickoff_label"].astype(str)
+        + " · "
+        + match_options["team_a_name"]
+        + " vs "
+        + match_options["team_b_name"]
+    )
+    selected_match_id = st.selectbox(
+        "Match",
+        options=list(match_options["match_id"]),
+        format_func=lambda match_id: str(match_options.set_index("match_id").loc[match_id, "label"]),
+        key="admin_bet_override_match",
+    )
+    selected_player = st.selectbox("Player", options=players, key="admin_bet_override_player")
+    selected_match = match_options.set_index("match_id").loc[selected_match_id]
+    all_bets = cached_load_bets(db, database_cache_key(db), config.event_id)
+    user_bets = all_bets[all_bets["username"] == selected_player] if not all_bets.empty else pd.DataFrame()
+    existing_bet = None
+    if not user_bets.empty and selected_match_id in set(user_bets["match_id"]):
+        existing_bet = user_bets.set_index("match_id").loc[selected_match_id]
+
+    selected_day_matches = localized_matches[localized_matches["betting_day"] == selected_match["betting_day"]].copy()
+    factor_budget = factor_budget_for_matches(config, selected_day_matches)
+    factor_values: dict[str, int] = {str(match_id): 1 for match_id in selected_day_matches["match_id"]}
+    if not user_bets.empty:
+        for row in user_bets[user_bets["match_id"].isin(factor_values)].itertuples(index=False):
+            factor_values[str(row.match_id)] = max(1, int(row.factor))
+    current_factor = int(existing_bet["factor"]) if existing_bet is not None else 1
+    factor_values[str(selected_match_id)] = max(1, current_factor)
+    computed_max_factor = factor_max_for_match(str(selected_match_id), factor_values, factor_budget)
+    displayed_max_factor = max(computed_max_factor, current_factor)
+
+    cols = st.columns([1, 1, 1])
+    override_score_a = cols[0].number_input(
+        "Score A",
+        min_value=0,
+        max_value=30,
+        value=int(existing_bet["score_a"]) if existing_bet is not None else 0,
+        key=f"admin_override_score_a_{selected_match_id}_{selected_player}",
+    )
+    override_score_b = cols[1].number_input(
+        "Score B",
+        min_value=0,
+        max_value=30,
+        value=int(existing_bet["score_b"]) if existing_bet is not None else 0,
+        key=f"admin_override_score_b_{selected_match_id}_{selected_player}",
+    )
+    override_factor = cols[2].number_input(
+        "Factor",
+        min_value=1,
+        max_value=displayed_max_factor,
+        value=current_factor,
+        key=f"admin_override_factor_{selected_match_id}_{selected_player}",
+    )
+    st.caption(f"{t(language, 'factor_budget')}: selected player day budget {sum(factor_values.values())} / {factor_budget}")
+    if int(override_factor) > computed_max_factor:
+        st.warning(f"Factor exceeds current day budget limit for this player ({computed_max_factor}). Saving is still allowed for admin overrides.")
+    if st.button("Override bet", type="primary", width="stretch"):
+        upsert_bets(
+            db,
+            config.event_id,
+            selected_player,
+            [
+                {
+                    "match_id": selected_match_id,
+                    "score_a": int(override_score_a),
+                    "score_b": int(override_score_b),
+                    "factor": int(override_factor),
+                }
+            ],
+        )
+        cached_load_bets.clear()
+        cached_load_user_bets.clear()
+        cached_load_match_bet_usernames.clear()
+        cached_load_points.clear()
+        st.success("Bet overridden.")
 
 
 def main() -> None:
