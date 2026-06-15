@@ -288,15 +288,28 @@ def sidebar_auth(players: list[str], language: str, replay: ReplaySettings | Non
                 st.rerun()
             return str(st.session_state["username"])
 
-        username = st.selectbox(t(language, "username"), options=["", *players])
-        password = st.text_input(t(language, "password"), type="password")
+        username_input = st.text_input(
+            t(language, "username"),
+            placeholder=", ".join(players),
+            key="login_username",
+        )
+        password = st.text_input(t(language, "password"), type="password", key="login_password")
         if st.button(t(language, "login"), width="stretch"):
+            username = canonical_username(username_input, players)
             replay_login = bool(replay and username and password == REPLAY_USER_PASSWORD)
             if username and (replay_login or verify_password(password, get_user_password(username))):
                 st.session_state["username"] = username
                 st.rerun()
             st.warning(t(language, "bad_login"))
     return None
+
+
+def canonical_username(value: str, players: list[str]) -> str | None:
+    normalized = value.strip()
+    if not normalized:
+        return None
+    by_lower = {player.lower(): player for player in players}
+    return by_lower.get(normalized.lower(), normalized)
 
 
 def render_favorite_picker(db: Database, config: EventConfig, username: str, language: str) -> None:
