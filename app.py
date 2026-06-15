@@ -376,6 +376,9 @@ def render_next_match_status(db: Database, config: EventConfig, players: list[st
 
 
 def render_score_probability_table(db: Database, config: EventConfig, match: pd.Series, language: str) -> None:
+    if not st.toggle(t(language, "market_score_probabilities"), key=f"odds_{match['match_id']}"):
+        return
+
     probabilities, metadata = cached_load_display_score_probabilities(
         db,
         database_cache_key(db),
@@ -399,29 +402,29 @@ def render_score_probability_table(db: Database, config: EventConfig, match: pd.
     )
     captured = metadata.get("captured_at") if metadata else None
     provider = metadata.get("provider") if metadata else None
-    with st.expander(t(language, "market_score_probabilities"), expanded=False):
-        if captured:
-            st.caption(t(language, "market_score_snapshot").format(provider=provider or "market", captured=str(captured)[:16]))
-        fig = px.imshow(
-            matrix.values,
-            text_auto=".1%",
-            x=[int(value) for value in matrix.columns],
-            y=[int(value) for value in matrix.index],
-            color_continuous_scale="YlGnBu",
-            aspect="auto",
-            labels={
-                "x": f"{match['team_b_name']} goals",
-                "y": f"{match['team_a_name']} goals",
-                "color": "Probability",
-            },
-        )
-        fig.update_xaxes(side="top", dtick=1)
-        fig.update_yaxes(autorange="reversed", dtick=1)
-        fig.update_traces(hovertemplate=f"{match['team_a_name']} %{{y}} - %{{x}} {match['team_b_name']}<br>Probability: %{{z:.2%}}<extra></extra>")
-        fig.update_layout(margin={"l": 8, "r": 8, "t": 8, "b": 8}, coloraxis_colorbar_tickformat=".0%")
-        st.plotly_chart(fig, width="stretch")
+    if captured:
+        st.caption(t(language, "market_score_snapshot").format(provider=provider or "market", captured=str(captured)[:16]))
+    fig = px.imshow(
+        matrix.values,
+        text_auto=".1%",
+        x=[int(value) for value in matrix.columns],
+        y=[int(value) for value in matrix.index],
+        color_continuous_scale="YlGnBu",
+        aspect="auto",
+        labels={
+            "x": f"{match['team_b_name']} goals",
+            "y": f"{match['team_a_name']} goals",
+            "color": "Probability",
+        },
+    )
+    fig.update_xaxes(side="top", dtick=1)
+    fig.update_yaxes(autorange="reversed", dtick=1)
+    fig.update_traces(hovertemplate=f"{match['team_a_name']} %{{y}} - %{{x}} {match['team_b_name']}<br>Probability: %{{z:.2%}}<extra></extra>")
+    fig.update_layout(margin={"l": 8, "r": 8, "t": 8, "b": 8}, coloraxis_colorbar_tickformat=".0%")
+    st.plotly_chart(fig, width="stretch")
 
 
+@st.fragment
 def render_bets(db: Database, config: EventConfig, players: list[str], username: str | None, language: str) -> None:
     status_placeholder = st.empty()
 
@@ -465,11 +468,7 @@ def render_bets(db: Database, config: EventConfig, players: list[str], username:
         existing = own_bets.loc[match.match_id] if match.match_id in own_bets.index else None
         factor_key = f"factor_{match.match_id}"
         current_factor = factor_values[str(match.match_id)]
-        max_factor = current_factor if is_locked else factor_max_for_match(str(match.match_id), factor_values, factor_budget)
-        if not is_locked and current_factor > max_factor:
-            current_factor = max_factor
-            factor_values[str(match.match_id)] = current_factor
-            st.session_state[factor_key] = current_factor
+        max_factor = max(current_factor, factor_budget)
 
         with st.container(border=True):
             st.markdown(
@@ -502,16 +501,6 @@ def render_bets(db: Database, config: EventConfig, players: list[str], username:
                     disabled=True,
                     key=f"{factor_key}_locked",
                 )
-            elif max_factor == 1:
-                st.session_state[factor_key] = 1
-                factor = cols[2].number_input(
-                    "Factor",
-                    min_value=1,
-                    max_value=1,
-                    value=1,
-                    disabled=True,
-                    key=f"{factor_key}_fixed",
-                )
             else:
                 factor = cols[2].slider(
                     "Factor",
@@ -537,17 +526,17 @@ def render_bets(db: Database, config: EventConfig, players: list[str], username:
 
     factor_sum = sum(factor_values.values())
     st.caption(f"{t(language, 'factor_budget')}: {factor_sum} / {factor_budget}")
+    factor_budget_exceeded = factor_sum > factor_budget
+    if factor_budget_exceeded:
+        st.warning(f"{t(language, 'factor_budget')}: {factor_sum} / {factor_budget}")
     submitted = st.button(
         t(language, "submit_bets"),
         type="primary",
-        disabled=not editable_rows,
+        disabled=not editable_rows or factor_budget_exceeded,
         width="stretch",
     )
 
     if editable_rows and submitted:
-        if factor_sum > factor_budget:
-            st.warning(f"{t(language, 'factor_budget')}: {factor_sum} / {factor_budget}")
-            return
         upsert_bets(db, config.event_id, username, editable_rows)
         cached_load_bets.clear()
         cached_load_user_bets.clear()
