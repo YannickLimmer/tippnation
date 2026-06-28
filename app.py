@@ -75,7 +75,6 @@ def get_database(config_path: str, replay_snapshot: str | None) -> Database:
     return connect(get_database_settings())
 
 
-@st.cache_data(show_spinner=False)
 def get_event_config(path: str) -> EventConfig:
     return load_event_config(Path(path))
 
