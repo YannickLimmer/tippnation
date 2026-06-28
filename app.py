@@ -10,7 +10,7 @@ import plotly.express as px
 import streamlit as st
 
 from tippnation.admin import compute_and_store_points, initialize_database, set_match_results
-from tippnation.config import DEFAULT_EVENT_CONFIG, EventConfig, config_as_json, load_event_config
+from tippnation.config import DEFAULT_EVENT_CONFIG, EventConfig, load_event_config
 from tippnation.db import Database, connect
 from tippnation.i18n import LANGUAGES, t
 from tippnation.odds import DISPLAY_SCORE_MAX
@@ -85,18 +85,6 @@ def database_cache_key(db: Database) -> str:
 
 def now_bucket(seconds: int) -> int:
     return int(now_utc().timestamp() // seconds)
-
-
-@st.cache_data(show_spinner=False, ttl=300)
-def bootstrap_cached(
-    _db: Database,
-    db_key: str,
-    _config: EventConfig,
-    config_json: str,
-    usernames: tuple[str, ...],
-) -> tuple[str, ...]:
-    initialize_database(_db, _config, list(usernames))
-    return tuple(list_players(_db))
 
 
 @st.cache_data(show_spinner=False, ttl=30)
@@ -253,8 +241,9 @@ def default_match_date(matches: pd.DataFrame) -> date | None:
 
 def bootstrap(db: Database, config: EventConfig) -> list[str]:
     secrets = load_secret_sources()
-    usernames = tuple(list_auth_users(secrets))
-    return list(bootstrap_cached(db, database_cache_key(db), config, config_as_json(config), usernames))
+    initialize_database(db, config, list_auth_users(secrets))
+    clear_read_caches()
+    return list(list_players(db))
 
 
 def render_market_odds_status(db: Database, config: EventConfig, replay: ReplaySettings | None, language: str) -> None:
@@ -819,7 +808,6 @@ def render_admin(
     if st.button(t(language, "initialize_db"), width="stretch"):
         initialize_database(db, config, players)
         clear_read_caches()
-        bootstrap_cached.clear()
         st.success("Database synced.")
 
     matches = cached_load_matches(db, database_cache_key(db), config.event_id)
