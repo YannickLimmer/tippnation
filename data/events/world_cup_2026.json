@@ -752,8 +752,330 @@
       "venue": "Arrowhead Stadium, Kansas City"
     }
   ],
+  "knockout_fixtures": [
+    {
+      "match_id": "R321",
+      "sort_order": 73,
+      "kickoff_utc": "2026-06-28T19:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "RSA",
+      "team_b_id": "CAN",
+      "venue": "SoFi Stadium, Inglewood"
+    },
+    {
+      "match_id": "R322",
+      "sort_order": 74,
+      "kickoff_utc": "2026-06-29T17:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "BRA",
+      "team_b_id": "JPN",
+      "venue": "NRG Stadium, Houston"
+    },
+    {
+      "match_id": "R323",
+      "sort_order": 75,
+      "kickoff_utc": "2026-06-29T20:30:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "GER",
+      "team_b_id": "PAR",
+      "venue": "Gillette Stadium, Foxborough"
+    },
+    {
+      "match_id": "R324",
+      "sort_order": 76,
+      "kickoff_utc": "2026-06-30T01:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "NED",
+      "team_b_id": "MAR",
+      "venue": "Estadio BBVA, Guadalupe"
+    },
+    {
+      "match_id": "R325",
+      "sort_order": 77,
+      "kickoff_utc": "2026-06-30T17:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "CIV",
+      "team_b_id": "NOR",
+      "venue": "AT&T Stadium, Arlington"
+    },
+    {
+      "match_id": "R326",
+      "sort_order": 78,
+      "kickoff_utc": "2026-06-30T21:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "FRA",
+      "team_b_id": "SWE",
+      "venue": "MetLife Stadium, East Rutherford"
+    },
+    {
+      "match_id": "R327",
+      "sort_order": 79,
+      "kickoff_utc": "2026-07-01T01:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "MEX",
+      "team_b_id": "ECU",
+      "venue": "Estadio Azteca, Mexico City"
+    },
+    {
+      "match_id": "R328",
+      "sort_order": 80,
+      "kickoff_utc": "2026-07-01T16:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "ENG",
+      "team_b_id": "COD",
+      "venue": "Mercedes-Benz Stadium, Atlanta"
+    },
+    {
+      "match_id": "R329",
+      "sort_order": 81,
+      "kickoff_utc": "2026-07-01T20:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "BEL",
+      "team_b_id": "SEN",
+      "venue": "Lumen Field, Seattle"
+    },
+    {
+      "match_id": "R3210",
+      "sort_order": 82,
+      "kickoff_utc": "2026-07-02T00:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "USA",
+      "team_b_id": "BIH",
+      "venue": "Levi's Stadium, Santa Clara"
+    },
+    {
+      "match_id": "R3211",
+      "sort_order": 83,
+      "kickoff_utc": "2026-07-02T19:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "ESP",
+      "team_b_id": "AUT",
+      "venue": "SoFi Stadium, Inglewood"
+    },
+    {
+      "match_id": "R3212",
+      "sort_order": 84,
+      "kickoff_utc": "2026-07-02T23:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "POR",
+      "team_b_id": "CRO",
+      "venue": "BMO Field, Toronto"
+    },
+    {
+      "match_id": "R3213",
+      "sort_order": 85,
+      "kickoff_utc": "2026-07-03T03:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "SUI",
+      "team_b_id": "ALG",
+      "venue": "BC Place, Vancouver"
+    },
+    {
+      "match_id": "R3214",
+      "sort_order": 86,
+      "kickoff_utc": "2026-07-03T18:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "AUS",
+      "team_b_id": "EGY",
+      "venue": "AT&T Stadium, Arlington"
+    },
+    {
+      "match_id": "R3215",
+      "sort_order": 87,
+      "kickoff_utc": "2026-07-03T22:00:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "ARG",
+      "team_b_id": "CPV",
+      "venue": "Hard Rock Stadium, Miami Gardens"
+    },
+    {
+      "match_id": "R3216",
+      "sort_order": 88,
+      "kickoff_utc": "2026-07-04T01:30:00+00:00",
+      "round_name": "round_of_32",
+      "team_a_id": "COL",
+      "team_b_id": "GHA",
+      "venue": "Arrowhead Stadium, Kansas City"
+    },
+    {
+      "match_id": "R161",
+      "sort_order": 89,
+      "kickoff_utc": "2026-07-04T17:00:00+00:00",
+      "round_name": "round_of_16",
+      "team_a_id": "W73",
+      "team_b_id": "W75",
+      "team_a_name": "Winner Match 73",
+      "team_b_name": "Winner Match 75",
+      "venue": "NRG Stadium, Houston"
+    },
+    {
+      "match_id": "R162",
+      "sort_order": 90,
+      "kickoff_utc": "2026-07-04T21:00:00+00:00",
+      "round_name": "round_of_16",
+      "team_a_id": "W74",
+      "team_b_id": "W77",
+      "team_a_name": "Winner Match 74",
+      "team_b_name": "Winner Match 77",
+      "venue": "Lincoln Financial Field, Philadelphia"
+    },
+    {
+      "match_id": "R163",
+      "sort_order": 91,
+      "kickoff_utc": "2026-07-05T20:00:00+00:00",
+      "round_name": "round_of_16",
+      "team_a_id": "W76",
+      "team_b_id": "W78",
+      "team_a_name": "Winner Match 76",
+      "team_b_name": "Winner Match 78",
+      "venue": "MetLife Stadium, East Rutherford"
+    },
+    {
+      "match_id": "R164",
+      "sort_order": 92,
+      "kickoff_utc": "2026-07-06T00:00:00+00:00",
+      "round_name": "round_of_16",
+      "team_a_id": "W79",
+      "team_b_id": "W80",
+      "team_a_name": "Winner Match 79",
+      "team_b_name": "Winner Match 80",
+      "venue": "Estadio Azteca, Mexico City"
+    },
+    {
+      "match_id": "R165",
+      "sort_order": 93,
+      "kickoff_utc": "2026-07-06T19:00:00+00:00",
+      "round_name": "round_of_16",
+      "team_a_id": "W83",
+      "team_b_id": "W84",
+      "team_a_name": "Winner Match 83",
+      "team_b_name": "Winner Match 84",
+      "venue": "AT&T Stadium, Arlington"
+    },
+    {
+      "match_id": "R166",
+      "sort_order": 94,
+      "kickoff_utc": "2026-07-07T00:00:00+00:00",
+      "round_name": "round_of_16",
+      "team_a_id": "W81",
+      "team_b_id": "W82",
+      "team_a_name": "Winner Match 81",
+      "team_b_name": "Winner Match 82",
+      "venue": "Lumen Field, Seattle"
+    },
+    {
+      "match_id": "R167",
+      "sort_order": 95,
+      "kickoff_utc": "2026-07-07T16:00:00+00:00",
+      "round_name": "round_of_16",
+      "team_a_id": "W86",
+      "team_b_id": "W88",
+      "team_a_name": "Winner Match 86",
+      "team_b_name": "Winner Match 88",
+      "venue": "Mercedes-Benz Stadium, Atlanta"
+    },
+    {
+      "match_id": "R168",
+      "sort_order": 96,
+      "kickoff_utc": "2026-07-07T20:00:00+00:00",
+      "round_name": "round_of_16",
+      "team_a_id": "W85",
+      "team_b_id": "W87",
+      "team_a_name": "Winner Match 85",
+      "team_b_name": "Winner Match 87",
+      "venue": "BC Place, Vancouver"
+    },
+    {
+      "match_id": "QF1",
+      "sort_order": 97,
+      "kickoff_utc": "2026-07-09T20:00:00+00:00",
+      "round_name": "quarterfinal",
+      "team_a_id": "W89",
+      "team_b_id": "W90",
+      "team_a_name": "Winner Match 89",
+      "team_b_name": "Winner Match 90",
+      "venue": "Gillette Stadium, Foxborough"
+    },
+    {
+      "match_id": "QF2",
+      "sort_order": 98,
+      "kickoff_utc": "2026-07-10T19:00:00+00:00",
+      "round_name": "quarterfinal",
+      "team_a_id": "W93",
+      "team_b_id": "W94",
+      "team_a_name": "Winner Match 93",
+      "team_b_name": "Winner Match 94",
+      "venue": "SoFi Stadium, Inglewood"
+    },
+    {
+      "match_id": "QF3",
+      "sort_order": 99,
+      "kickoff_utc": "2026-07-11T21:00:00+00:00",
+      "round_name": "quarterfinal",
+      "team_a_id": "W91",
+      "team_b_id": "W92",
+      "team_a_name": "Winner Match 91",
+      "team_b_name": "Winner Match 92",
+      "venue": "Hard Rock Stadium, Miami Gardens"
+    },
+    {
+      "match_id": "QF4",
+      "sort_order": 100,
+      "kickoff_utc": "2026-07-12T01:00:00+00:00",
+      "round_name": "quarterfinal",
+      "team_a_id": "W95",
+      "team_b_id": "W96",
+      "team_a_name": "Winner Match 95",
+      "team_b_name": "Winner Match 96",
+      "venue": "Arrowhead Stadium, Kansas City"
+    },
+    {
+      "match_id": "SF1",
+      "sort_order": 101,
+      "kickoff_utc": "2026-07-14T19:00:00+00:00",
+      "round_name": "semifinal",
+      "team_a_id": "W97",
+      "team_b_id": "W98",
+      "team_a_name": "Winner Match 97",
+      "team_b_name": "Winner Match 98",
+      "venue": "AT&T Stadium, Arlington"
+    },
+    {
+      "match_id": "SF2",
+      "sort_order": 102,
+      "kickoff_utc": "2026-07-15T19:00:00+00:00",
+      "round_name": "semifinal",
+      "team_a_id": "W99",
+      "team_b_id": "W100",
+      "team_a_name": "Winner Match 99",
+      "team_b_name": "Winner Match 100",
+      "venue": "Mercedes-Benz Stadium, Atlanta"
+    },
+    {
+      "match_id": "3P1",
+      "sort_order": 103,
+      "kickoff_utc": "2026-07-18T21:00:00+00:00",
+      "round_name": "third_place",
+      "team_a_id": "L101",
+      "team_b_id": "L102",
+      "team_a_name": "Loser Match 101",
+      "team_b_name": "Loser Match 102",
+      "venue": "Hard Rock Stadium, Miami Gardens"
+    },
+    {
+      "match_id": "FIN1",
+      "sort_order": 104,
+      "kickoff_utc": "2026-07-19T19:00:00+00:00",
+      "round_name": "final",
+      "team_a_id": "W101",
+      "team_b_id": "W102",
+      "team_a_name": "Winner Match 101",
+      "team_b_name": "Winner Match 102",
+      "venue": "MetLife Stadium, East Rutherford"
+    }
+  ],
   "schedule_template": {
-    "source": "Group-stage fixtures are explicit from the verified Betfair World Cup market schedule; knockout placeholders are generated until fixtures are known.",
+    "source": "Group-stage fixtures are explicit from the verified Betfair World Cup market schedule; knockout fixtures are explicit from the FIFA/Wikipedia knockout pages as of 2026-06-28.",
     "group_stage_dates": {
       "A": [
         "2026-06-11",
