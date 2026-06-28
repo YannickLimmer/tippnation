@@ -30,7 +30,11 @@ DEFAULT_API_FOOTBALL_DAILY_BUDGET = 7500
 API_FOOTBALL_FINAL_STATUSES = {"FT", "AET", "PEN"}
 API_FOOTBALL_UNSCORABLE_STATUSES = {"NS", "TBD", "PST", "CANC", "ABD", "AWD", "WO"}
 TEAM_ALIASES = {
+    "cabo verde": "cape verde",
+    "congo dr": "dr congo",
+    "cote d ivoire": "ivory coast",
     "czech republic": "czechia",
+    "d r congo": "dr congo",
     "korea republic": "south korea",
     "rep of ireland": "ireland",
     "republic of ireland": "ireland",
@@ -41,7 +45,10 @@ TEAM_ALIASES = {
     "us": "united states",
 }
 SEARCH_NAME_ALIASES = {
+    "Cape Verde": ["Cape Verde", "Cabo Verde"],
+    "Côte d'Ivoire": ["Côte d'Ivoire", "Ivory Coast"],
     "Czechia": ["Czechia", "Czech Republic"],
+    "DR Congo": ["DR Congo", "Congo DR", "Democratic Republic of Congo"],
     "Republic of Ireland": ["Republic of Ireland", "Ireland"],
     "Türkiye": ["Türkiye", "Turkey"],
     "USA": ["USA", "United States"],
@@ -306,9 +313,11 @@ def poll_match_results(
         _record_api_football_requests(state, current_time, api_requests)
     if updates and not dry_run:
         from .admin import compute_and_store_points
+        from .knockout import sync_knockout_advancement
         from .repository import update_results
 
         update_results(db, config.event_id, updates)
+        sync_knockout_advancement(db, config)
         if score_updates:
             compute_and_store_points(db, config)
     if not dry_run:

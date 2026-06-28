@@ -153,9 +153,11 @@ def _expand_matches(raw: dict) -> list[dict[str, object]]:
                     "group_name": item.get("group_name"),
                     "team_a_id": str(item["team_a_id"]),
                     "team_b_id": str(item["team_b_id"]),
-                    "team_a_name": str(raw["teams"][item["team_a_id"]]),
-                    "team_b_name": str(raw["teams"][item["team_b_id"]]),
+                    "team_a_name": _team_name(raw, item, "team_a"),
+                    "team_b_name": _team_name(raw, item, "team_b"),
                     "venue": item.get("venue"),
+                    "thesportsdb_event_id": item.get("thesportsdb_event_id"),
+                    "api_football_fixture_id": item.get("api_football_fixture_id"),
                 }
             )
         sort_order = max(int(item["sort_order"]) for item in explicit_group_fixtures) + 1
@@ -193,6 +195,28 @@ def _expand_matches(raw: dict) -> list[dict[str, object]]:
                     fixture_number += 1
                     sort_order += 1
 
+    explicit_knockout_fixtures = raw.get("knockout_fixtures")
+    if explicit_knockout_fixtures:
+        for item in explicit_knockout_fixtures:
+            matches.append(
+                {
+                    "match_id": str(item["match_id"]),
+                    "sort_order": int(item["sort_order"]),
+                    "kickoff_utc": str(item["kickoff_utc"]),
+                    "stage": "knockout",
+                    "round_name": str(item["round_name"]),
+                    "group_name": None,
+                    "team_a_id": str(item["team_a_id"]),
+                    "team_b_id": str(item["team_b_id"]),
+                    "team_a_name": _team_name(raw, item, "team_a"),
+                    "team_b_name": _team_name(raw, item, "team_b"),
+                    "venue": item.get("venue"),
+                    "thesportsdb_event_id": item.get("thesportsdb_event_id"),
+                    "api_football_fixture_id": item.get("api_football_fixture_id"),
+                }
+            )
+        return matches
+
     knockout_rounds = [
         ("R32", "round_of_32", "Round of 32", "2026-06-28", 16),
         ("R16", "round_of_16", "Round of 16", "2026-07-04", 8),
@@ -222,6 +246,14 @@ def _expand_matches(raw: dict) -> list[dict[str, object]]:
             )
             sort_order += 1
     return matches
+
+
+def _team_name(raw: dict, item: dict, prefix: str) -> str:
+    team_id = str(item[f"{prefix}_id"])
+    configured = item.get(f"{prefix}_name")
+    if configured:
+        return str(configured)
+    return str(raw["teams"].get(team_id, team_id))
 
 
 def config_as_json(config: EventConfig) -> str:

@@ -62,6 +62,8 @@ FAR_REFRESH_INTERVAL = timedelta(hours=12)
 TEAM_ALIASES = {
     "bosnia": "bosnia and herzegovina",
     "bosnia-herzegovina": "bosnia and herzegovina",
+    "cabo verde": "cape verde",
+    "congo dr": "dr congo",
     "cote divoire": "ivory coast",
     "cote d ivoire": "ivory coast",
     "cote d'ivoire": "ivory coast",
@@ -70,6 +72,7 @@ TEAM_ALIASES = {
     "curacao": "curacao",
     "curaçao": "curacao",
     "czech republic": "czechia",
+    "d r congo": "dr congo",
     "south korea": "south korea",
     "korea republic": "south korea",
     "turkey": "turkiye",

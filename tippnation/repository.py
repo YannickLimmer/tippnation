@@ -74,6 +74,9 @@ def sync_event_config(db: Database, config: EventConfig) -> None:
             for match in config.matches
         ],
     )
+    from .knockout import sync_knockout_advancement
+
+    sync_knockout_advancement(db, config)
 
 
 def sync_players(db: Database, usernames: Iterable[str]) -> None:

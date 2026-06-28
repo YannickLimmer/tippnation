@@ -196,7 +196,7 @@ def _seed_results(db: Database, config: EventConfig, source_rows: list[dict[str,
                 "status": "completed" if is_completed else "scheduled",
             }
         )
-    set_match_results(db, config.event_id, pd.DataFrame(result_rows))
+    set_match_results(db, config.event_id, pd.DataFrame(result_rows), config)
 
 
 def _seed_bets(db: Database, config: EventConfig, source_rows: list[dict[str, str]], replay_now: datetime) -> None:

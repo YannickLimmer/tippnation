@@ -24,8 +24,17 @@ def initialize_database(db: Database, config: EventConfig, usernames: list[str])
     sync_players(db, usernames)
 
 
-def set_match_results(db: Database, event_id: str, results: pd.DataFrame) -> None:
+def set_match_results(
+    db: Database,
+    event_id: str,
+    results: pd.DataFrame,
+    config: EventConfig | None = None,
+) -> None:
     update_results(db, event_id, results.to_dict("records"))
+    if config is not None:
+        from .knockout import sync_knockout_advancement
+
+        sync_knockout_advancement(db, config)
 
 
 def compute_and_store_points(db: Database, config: EventConfig) -> pd.DataFrame:

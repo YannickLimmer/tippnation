@@ -837,7 +837,7 @@ def render_admin(
     )
     cols = st.columns(2)
     if cols[0].button(t(language, "set_results"), width="stretch"):
-        set_match_results(db, config.event_id, edited)
+        set_match_results(db, config.event_id, edited, config)
         cached_load_matches.clear()
         cached_load_points.clear()
         st.success(t(language, "results_saved"))
