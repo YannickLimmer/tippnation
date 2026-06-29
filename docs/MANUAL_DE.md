@@ -273,7 +273,14 @@ favorite =
 
 Kanonenwilli ist ein Comeback-Mechanismus. Er wird automatisch und deterministisch von der App vergeben.
 
-Vor jedem Spiel schaut die App auf die Tabelle aus den bereits abgeschlossenen Spielen. Spieler im unteren Bereich können mit einer gesetzten Zufallskomponente einen Kanonenwilli-Wert erhalten. Das Ziel ist meistens einer der Plätze 4 bis 8 in der aktuellen Tabelle. Der vergebene Wert ist die Punktzahl, die nötig wäre, um dieses Ziel einzuholen, aber nie weniger als `0`.
+Vor jedem Spiel schaut die App auf die Tabelle aus den bereits abgeschlossenen Spielen. Nur die unteren vier Plätze sind für die Kanonenwilli-Ziehung berechtigt:
+
+- Letzter Platz: `66%`
+- Vorletzter Platz: `50%`
+- Drittletzter Platz: `33%`
+- Viertletzter Platz: `16%`
+
+Die Ziehung ist zufällig, aber gesetzt, also für dasselbe Spiel und dieselbe Tabelle reproduzierbar. Wenn die Ziehung erfolgreich ist, ist das Ziel meistens einer der Plätze 4 bis 8 in der aktuellen Tabelle. Der vergebene Wert ist die Punktzahl, die nötig wäre, um dieses Ziel einzuholen, aber nie weniger als `0`.
 
 Kanonenwilli-Punkte werden nur ausgezahlt, wenn die Tendenz des Tipps stimmt:
 
@@ -288,11 +295,13 @@ Im ersten Spiel gibt es noch keine vorherige Tabelle, also ist Kanonenwilli `0`.
 | Runde | FavoriteWin | Faktorbeitrag | ExoticWeight |
 |---|---:|---:|---:|
 | Gruppenphase | 6 | 3 | 6 |
-| Runde der letzten 32 | 10 | 5 | 10 |
-| Achtelfinale | 12 | 6 | 12 |
-| Viertelfinale | 12 | 8 | 16 |
-| Halbfinale | 16 | 10 | 20 |
-| Spiel um Platz drei | 16 | 10 | 20 |
-| Finale | 20 | 12 | 24 |
+| Runde der letzten 32 | 12 | 6 | 11 |
+| Achtelfinale | 14 | 7 | 13 |
+| Viertelfinale | 14 | 9 | 17 |
+| Halbfinale | 17 | 13 | 20 |
+| Spiel um Platz drei | 17 | 12 | 20 |
+| Finale | 21 | 14 | 24 |
+
+Die K.o.-Einstellungen sind so skaliert, dass die maximal mögliche fbase-Kapazität, Lieblingsteam-Kapazität und Exoten-Kapazität der gesamten K.o.-Phase den jeweiligen Summen aus der Gruppenphase entsprechen. Spätere Runden bleiben dabei wichtiger.
 
 Bei K.o.-Spielen, die im Elfmeterschießen entschieden werden, nutzt TippNation das Ergebnis nach 120 Minuten plus ein Tor für den Sieger des Elfmeterschießens.

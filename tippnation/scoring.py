@@ -11,6 +11,7 @@ from .config import EventConfig, RuleConfig
 
 TO_RANK = [8, 7, 6, 5, 4]
 PROBABILITIES = [0.1, 0.2, 0.4, 0.2, 0.1]
+KANONENWILLI_CHANCE_BY_LAST_RANK = {1: 0.66, 2: 0.50, 3: 0.33, 4: 0.16}
 MARKET_EXOTIC_ALPHA = 0.6
 MARKET_EXOTIC_Z_MAX = 3.0
 MARKET_EXOTIC_MIN_CLOSENESS = 0.35
@@ -27,8 +28,7 @@ def _stable_random(seed: str, *parts: object) -> random.Random:
 
 
 def _rocket_target(seed: str, match_id: str, username: str, last_rank: int) -> int | None:
-    chance_by_rank = {1: 2 / 3, 2: 1 / 2, 3: 1 / 3, 4: 1 / 5}
-    chance = chance_by_rank.get(int(last_rank), 0)
+    chance = KANONENWILLI_CHANCE_BY_LAST_RANK.get(int(last_rank), 0)
     rng = _stable_random(seed, match_id, username, last_rank)
     if rng.random() >= chance:
         return None

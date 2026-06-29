@@ -11,39 +11,39 @@
       "exotic": 6
     },
     "round_of_32": {
-      "favorite": 10,
-      "max_factor": 5,
-      "exotic": 10
-    },
-    "round_of_16": {
       "favorite": 12,
       "max_factor": 6,
-      "exotic": 12
+      "exotic": 11
+    },
+    "round_of_16": {
+      "favorite": 14,
+      "max_factor": 7,
+      "exotic": 13
     },
     "quarterfinal": {
-      "favorite": 12,
-      "max_factor": 8,
-      "exotic": 16
+      "favorite": 14,
+      "max_factor": 9,
+      "exotic": 17
     },
     "semifinal": {
-      "favorite": 16,
-      "max_factor": 10,
+      "favorite": 17,
+      "max_factor": 13,
       "exotic": 20
     },
     "third_place": {
-      "favorite": 16,
-      "max_factor": 10,
+      "favorite": 17,
+      "max_factor": 12,
       "exotic": 20
     },
     "final": {
-      "favorite": 20,
-      "max_factor": 12,
+      "favorite": 21,
+      "max_factor": 14,
       "exotic": 24
     },
     "knockout": {
-      "favorite": 12,
-      "max_factor": 6,
-      "exotic": 12
+      "favorite": 14,
+      "max_factor": 7,
+      "exotic": 13
     }
   },
   "teams": {

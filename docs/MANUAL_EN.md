@@ -273,7 +273,14 @@ favorite =
 
 Kanonenwilli is a comeback mechanic. It is assigned automatically and deterministically by the app.
 
-Before each match, the app looks at the standings from previous completed matches. Players near the bottom can receive a Kanonenwilli value with a seeded random chance. The target is usually one of places 4 to 8 in the current standings. The assigned value is the number of points needed to catch that target, never below `0`.
+Before each match, the app looks at the standings from previous completed matches. Only the bottom four places are eligible for the Kanonenwilli draw:
+
+- Last place: `66%`
+- Second last: `50%`
+- Third last: `33%`
+- Fourth last: `16%`
+
+The draw is random but seeded, so it is reproducible for the same match and standings. If the draw succeeds, the target is usually one of places 4 to 8 in the current standings. The assigned value is the number of points needed to catch that target, never below `0`.
 
 Kanonenwilli points are only paid if the player gets the match outcome right:
 
@@ -288,11 +295,13 @@ The first match has no prior standings, so Kanonenwilli is `0`.
 | Round | FavoriteWin | Factor contribution | ExoticWeight |
 |---|---:|---:|---:|
 | Group stage | 6 | 3 | 6 |
-| Round of 32 | 10 | 5 | 10 |
-| Round of 16 | 12 | 6 | 12 |
-| Quarterfinal | 12 | 8 | 16 |
-| Semifinal | 16 | 10 | 20 |
-| Third place | 16 | 10 | 20 |
-| Final | 20 | 12 | 24 |
+| Round of 32 | 12 | 6 | 11 |
+| Round of 16 | 14 | 7 | 13 |
+| Quarterfinal | 14 | 9 | 17 |
+| Semifinal | 17 | 13 | 20 |
+| Third place | 17 | 12 | 20 |
+| Final | 21 | 14 | 24 |
+
+The knockout settings are scaled so the maximum fbase capacity, favorite-point capacity, and exotic-point capacity across the knockout stage match the corresponding totals from the group stage, while later rounds remain more important.
 
 For knockout matches decided by penalties, TippNation represents the result as the score after 120 minutes plus one goal for the shootout winner.
