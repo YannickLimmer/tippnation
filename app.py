@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from tippnation.admin import compute_and_store_points, initialize_database, set_match_results
+from tippnation.admin import compute_and_store_points, initialize_database, initialize_database_if_needed, set_match_results
 from tippnation.config import DEFAULT_EVENT_CONFIG, EventConfig, load_event_config
 from tippnation.db import Database, connect
 from tippnation.i18n import LANGUAGES, t
@@ -241,8 +241,9 @@ def default_match_date(matches: pd.DataFrame) -> date | None:
 
 def bootstrap(db: Database, config: EventConfig) -> list[str]:
     secrets = load_secret_sources()
-    initialize_database(db, config, list_auth_users(secrets))
-    clear_read_caches()
+    synced = initialize_database_if_needed(db, config, list_auth_users(secrets))
+    if synced:
+        clear_read_caches()
     return list(list_players(db))
 
 
@@ -825,8 +826,7 @@ def render_admin(
     cols = st.columns(2)
     if cols[0].button(t(language, "set_results"), width="stretch"):
         set_match_results(db, config.event_id, edited, config)
-        cached_load_matches.clear()
-        cached_load_points.clear()
+        clear_read_caches()
         st.success(t(language, "results_saved"))
     if cols[1].button(t(language, "recompute_points"), type="primary", width="stretch"):
         points = compute_and_store_points(db, config)

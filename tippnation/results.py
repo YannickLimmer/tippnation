@@ -31,6 +31,7 @@ API_FOOTBALL_FINAL_STATUSES = {"FT", "AET", "PEN"}
 API_FOOTBALL_UNSCORABLE_STATUSES = {"NS", "TBD", "PST", "CANC", "ABD", "AWD", "WO"}
 TEAM_ALIASES = {
     "cabo verde": "cape verde",
+    "cape verde islands": "cape verde",
     "congo dr": "dr congo",
     "cote d ivoire": "ivory coast",
     "czech republic": "czechia",
@@ -45,7 +46,7 @@ TEAM_ALIASES = {
     "us": "united states",
 }
 SEARCH_NAME_ALIASES = {
-    "Cape Verde": ["Cape Verde", "Cabo Verde"],
+    "Cape Verde": ["Cape Verde", "Cabo Verde", "Cape Verde Islands"],
     "Côte d'Ivoire": ["Côte d'Ivoire", "Ivory Coast"],
     "Czechia": ["Czechia", "Czech Republic"],
     "DR Congo": ["DR Congo", "Congo DR", "Democratic Republic of Congo"],
@@ -222,7 +223,7 @@ def poll_match_results(
     for match in candidates:
         row = existing.get(match.match_id)
         entry = _state_entry(state, config.event_id, match.match_id)
-        if backfill and row and _db_row_has_score(row):
+        if backfill and row and _db_row_completed(row):
             already_completed += 1
             continue
         if row and _db_row_completed(row) and not force and not _state_provider_owned(entry):

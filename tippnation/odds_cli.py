@@ -16,6 +16,7 @@ from .odds import (
     odds_refresh_decision,
     refresh_betfair_odds,
     refresh_market_odds_if_due,
+    seed_synthetic_equal_odds_backfill,
 )
 from .repository import load_matches, lock_latest_pregame_odds, sync_event_config
 from .secrets import get_betfair_settings, get_database_settings
@@ -30,6 +31,8 @@ class LocalOddsUpdateResult:
     stage: str = "unknown"
     skipped_reason: str | None = None
     error: str | None = None
+    seeded_matches: int = 0
+    skipped_matches: int = 0
 
 
 def update_betting_odds(
@@ -192,6 +195,49 @@ def check_betfair_auth(*, verbose: bool = True) -> LocalOddsUpdateResult:
     )
 
 
+def backfill_synthetic_odds(
+    *,
+    config_path: Path = DEFAULT_EVENT_CONFIG,
+    match_ids: list[str] | None = None,
+    lambda_goals: float = 1.5,
+    include_future: bool = False,
+    now: datetime | None = None,
+    verbose: bool = True,
+) -> LocalOddsUpdateResult:
+    current_time = now or datetime.now(timezone.utc)
+    _log(verbose, "stage=config_load")
+    _log(verbose, f"config_path={config_path}")
+    config = load_event_config(config_path)
+    _log(verbose, f"event_id={config.event_id}")
+    _log(verbose, f"mode=synthetic_odds_backfill lambda_goals={lambda_goals} now={current_time.isoformat()}")
+    _log(verbose, "stage=database_connect")
+    db = connect(get_database_settings())
+    try:
+        _log(verbose, "stage=database_schema")
+        ensure_schema(db)
+        sync_event_config(db, config)
+        result = seed_synthetic_equal_odds_backfill(
+            db,
+            config,
+            current_time,
+            match_ids=match_ids,
+            lambda_goals=lambda_goals,
+            include_future=include_future,
+        )
+        return LocalOddsUpdateResult(
+            attempted=True,
+            updated_matches=result.seeded_matches,
+            locked_matches=result.locked_matches,
+            unmatched_matches=0,
+            stage="synthetic_odds_backfill",
+            seeded_matches=result.seeded_matches,
+            skipped_matches=result.skipped_matches,
+        )
+    finally:
+        db.close()
+        _log(verbose, "stage=database_close")
+
+
 def _target_match_ids(matches: pd.DataFrame, now: datetime, all_upcoming: bool) -> list[str]:
     upcoming = matches[matches["kickoff_utc"] > pd.Timestamp(now)].sort_values("kickoff_utc")
     if upcoming.empty:
@@ -252,6 +298,8 @@ def _print_result(result: LocalOddsUpdateResult) -> None:
     print(f"updated_matches={result.updated_matches}")
     print(f"unmatched_matches={result.unmatched_matches}")
     print(f"locked_matches={result.locked_matches}")
+    print(f"seeded_matches={result.seeded_matches}")
+    print(f"skipped_matches={result.skipped_matches}")
     if result.skipped_reason:
         print(f"skipped_reason={result.skipped_reason}")
     if result.error:
@@ -290,10 +338,30 @@ def main() -> None:
         action="store_true",
         help="Only test Betfair certificate/session login and keep-alive. Does not connect to the database.",
     )
+    parser.add_argument(
+        "--synthetic-backfill",
+        action="store_true",
+        help="Seed equal synthetic pre-game odds for past matches that do not already have a locked odds snapshot.",
+    )
+    parser.add_argument("--match-id", action="append", help="Limit --synthetic-backfill to one match ID. Can be repeated.")
+    parser.add_argument("--lambda-goals", type=float, default=1.5, help="Expected goals per team for --synthetic-backfill.")
+    parser.add_argument(
+        "--include-future",
+        action="store_true",
+        help="Allow --synthetic-backfill to seed selected future matches too. Past matches only by default.",
+    )
     args = parser.parse_args()
 
     if args.auth_check:
         result = check_betfair_auth()
+    elif args.synthetic_backfill:
+        result = backfill_synthetic_odds(
+            config_path=args.config,
+            match_ids=args.match_id,
+            lambda_goals=float(args.lambda_goals),
+            include_future=bool(args.include_future),
+            now=_parse_now(args.now),
+        )
     else:
         result = update_betting_odds(
             config_path=args.config,

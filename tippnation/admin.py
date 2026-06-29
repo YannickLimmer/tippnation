@@ -5,6 +5,7 @@ import pandas as pd
 from .config import EventConfig
 from .db import Database, ensure_schema
 from .repository import (
+    event_config_is_current,
     load_bets,
     load_favorites,
     load_locked_score_probabilities,
@@ -22,6 +23,16 @@ def initialize_database(db: Database, config: EventConfig, usernames: list[str])
     ensure_schema(db)
     sync_event_config(db, config)
     sync_players(db, usernames)
+
+
+def initialize_database_if_needed(db: Database, config: EventConfig, usernames: list[str]) -> bool:
+    ensure_schema(db)
+    synced = False
+    if not event_config_is_current(db, config):
+        sync_event_config(db, config)
+        synced = True
+    sync_players(db, usernames)
+    return synced
 
 
 def set_match_results(

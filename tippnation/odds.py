@@ -63,6 +63,7 @@ TEAM_ALIASES = {
     "bosnia": "bosnia and herzegovina",
     "bosnia-herzegovina": "bosnia and herzegovina",
     "cabo verde": "cape verde",
+    "cape verde islands": "cape verde",
     "congo dr": "dr congo",
     "cote divoire": "ivory coast",
     "cote d ivoire": "ivory coast",
@@ -138,6 +139,13 @@ class OddsRefreshResult:
     error: str | None = None
     already_running: bool = False
     unmatched_matches: int = 0
+
+
+@dataclass(frozen=True)
+class SyntheticOddsBackfillResult:
+    seeded_matches: int
+    skipped_matches: int
+    locked_matches: int
 
 
 class BetfairClient:
@@ -600,6 +608,70 @@ def seed_synthetic_replay_odds(db: Database, config: EventConfig, replay_now: da
             probabilities=probabilities,
         )
     lock_latest_pregame_odds(db, config.event_id, replay_now)
+
+
+def seed_synthetic_equal_odds_backfill(
+    db: Database,
+    config: EventConfig,
+    now: datetime,
+    *,
+    match_ids: list[str] | None = None,
+    lambda_goals: float = 1.5,
+    only_missing_locks: bool = True,
+    include_future: bool = False,
+) -> SyntheticOddsBackfillResult:
+    requested = {str(match_id) for match_id in match_ids} if match_ids else None
+    locked_before = lock_latest_pregame_odds(db, config.event_id, now)
+    locked_match_ids = _locked_match_ids(db, config.event_id)
+    probabilities = score_probability_grid(lambda_goals, lambda_goals, score_max=MODEL_SCORE_MAX)
+    seeded = 0
+    skipped = 0
+
+    for match in config.matches:
+        if requested is not None and match.match_id not in requested:
+            continue
+        kickoff_utc = _to_datetime(match.kickoff_utc)
+        if not include_future and kickoff_utc > now:
+            skipped += 1
+            continue
+        if only_missing_locks and match.match_id in locked_match_ids:
+            skipped += 1
+            continue
+
+        captured_at = kickoff_utc - timedelta(minutes=10)
+        diagnostics = {
+            "lambda_home": round(lambda_goals, 4),
+            "lambda_away": round(lambda_goals, 4),
+            "fit_targets": 0,
+            "synthetic_backfill": True,
+            "reason": "equal odds fallback for missing pre-game market data",
+        }
+        markets = _synthetic_markets(match.team_a_name, match.team_b_name, probabilities)
+        snapshot_id = _snapshot_id(config.event_id, match.match_id, captured_at, "synthetic-backfill")
+        insert_odds_snapshot(
+            db,
+            event_id=config.event_id,
+            match_id=match.match_id,
+            snapshot_id=snapshot_id,
+            provider="synthetic-backfill",
+            provider_event_id=None,
+            captured_at=captured_at,
+            kickoff_utc=kickoff_utc,
+            market_count=len(markets),
+            score_max=MODEL_SCORE_MAX,
+            diagnostics=diagnostics,
+            markets=markets,
+            probabilities=probabilities,
+        )
+        seeded += 1
+
+    locked_after = lock_latest_pregame_odds(db, config.event_id, now)
+    return SyntheticOddsBackfillResult(seeded, skipped, locked_before + locked_after)
+
+
+def _locked_match_ids(db: Database, event_id: str) -> set[str]:
+    rows = db.query("SELECT match_id FROM pregame_odds_locks WHERE event_id = ?", (event_id,))
+    return {str(row["match_id"]) for row in rows}
 
 
 def _target_upcoming_matches(matches: pd.DataFrame, now: datetime) -> pd.DataFrame:

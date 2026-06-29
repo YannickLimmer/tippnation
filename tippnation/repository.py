@@ -79,6 +79,59 @@ def sync_event_config(db: Database, config: EventConfig) -> None:
     sync_knockout_advancement(db, config)
 
 
+def event_config_is_current(db: Database, config: EventConfig) -> bool:
+    rows = db.query("SELECT config_json FROM events WHERE event_id = ?", (config.event_id,))
+    if not rows or str(rows[0].get("config_json") or "") != config_as_json(config):
+        return False
+
+    static_matches = [match for match in config.matches if _is_static_config_match(match)]
+    if not static_matches:
+        return True
+
+    db_rows = db.query(
+        """
+        SELECT match_id, kickoff_utc, stage, round_name, group_name,
+               team_a_id, team_b_id, team_a_name, team_b_name, venue
+        FROM matches
+        WHERE event_id = ?
+        """,
+        (config.event_id,),
+    )
+    by_match_id = {str(row["match_id"]): row for row in db_rows}
+    for match in static_matches:
+        row = by_match_id.get(match.match_id)
+        if row is None:
+            return False
+        expected = {
+            "kickoff_utc": match.kickoff_utc.isoformat(),
+            "stage": match.stage,
+            "round_name": match.round_name,
+            "group_name": match.group_name,
+            "team_a_id": match.team_a_id,
+            "team_b_id": match.team_b_id,
+            "team_a_name": match.team_a_name,
+            "team_b_name": match.team_b_name,
+            "venue": match.venue,
+        }
+        for key, expected_value in expected.items():
+            if _normalized_db_value(row.get(key)) != _normalized_db_value(expected_value):
+                return False
+    return True
+
+
+def _is_static_config_match(match: Any) -> bool:
+    return not (_is_dynamic_fixture_label(match.team_a_name) or _is_dynamic_fixture_label(match.team_b_name))
+
+
+def _is_dynamic_fixture_label(value: str | None) -> bool:
+    label = str(value or "").casefold()
+    return label.startswith(("winner match ", "loser match ", "round of 32 "))
+
+
+def _normalized_db_value(value: Any) -> str:
+    return "" if value is None else str(value)
+
+
 def sync_players(db: Database, usernames: Iterable[str]) -> None:
     db.executemany(
         """
