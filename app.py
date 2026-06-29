@@ -569,6 +569,29 @@ def render_entries(db: Database, config: EventConfig, players: list[str], langua
     st.dataframe(display, hide_index=True, width="stretch")
 
 
+def render_standings_plot(standings: pd.DataFrame, components: list[str], heading: str, language: str) -> None:
+    if standings.empty:
+        return
+    chart_standings = standings[["username", *components]].copy()
+    chart_standings["total"] = chart_standings[components].sum(axis=1)
+    chart_standings = chart_standings.sort_values(["total", "username"], ascending=[False, True])
+    chart_data = chart_standings[["username", *components]].melt(
+        id_vars="username",
+        value_vars=components,
+        var_name="component",
+        value_name="points",
+    )
+    st.markdown(f"#### {heading}")
+    fig = px.bar(chart_data, x="username", y="points", color="component")
+    fig.update_layout(
+        margin={"l": 8, "r": 8, "t": 8, "b": 8},
+        xaxis_title=t(language, "username"),
+        yaxis_title="Points",
+        xaxis={"categoryorder": "array", "categoryarray": chart_standings["username"].tolist()},
+    )
+    st.plotly_chart(fig, width="stretch")
+
+
 @st.fragment(run_every=READ_REFRESH_INTERVAL)
 def render_stats(db: Database, config: EventConfig, language: str) -> None:
     points = cached_load_points(db, database_cache_key(db), config.event_id, now_bucket(60))
@@ -612,6 +635,11 @@ def render_stats(db: Database, config: EventConfig, language: str) -> None:
     progression["running"] = progression.groupby("username")["final"].cumsum()
     chart = progression.pivot_table(index="match_number", columns="username", values="running", aggfunc="max")
     st.line_chart(chart)
+
+    st.markdown(f"### {t(language, 'subcompetitions')}")
+    render_standings_plot(standings, ["fbase", "exotic", "favorite"], t(language, "subcompetition_no_kw"), language)
+    render_standings_plot(standings, ["exotic"], t(language, "subcompetition_exotic"), language)
+    render_standings_plot(standings, ["kanonenwilli"], t(language, "subcompetition_kanonenwilli"), language)
 
 
 @st.fragment(run_every=READ_REFRESH_INTERVAL)
