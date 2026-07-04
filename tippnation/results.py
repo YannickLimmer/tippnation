@@ -494,8 +494,6 @@ def _local_candidates(
             continue
         if not backfill and match.kickoff_utc < due_after:
             continue
-        if not (force or backfill) and now > _settle_until(match):
-            continue
         next_check_at = _parse_datetime(_state_entry(state, config.event_id, match.match_id).get("next_check_at"))
         if not (force or backfill) and next_check_at and now < next_check_at:
             continue

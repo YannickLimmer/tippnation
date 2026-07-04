@@ -853,9 +853,12 @@ def render_admin(
     )
     cols = st.columns(2)
     if cols[0].button(t(language, "set_results"), width="stretch"):
-        set_match_results(db, config.event_id, edited, config)
+        generated_auto_bets = set_match_results(db, config.event_id, edited, config)
         clear_read_caches()
-        st.success(t(language, "results_saved"))
+        message = t(language, "results_saved")
+        if generated_auto_bets:
+            message += f" Auto-generated {generated_auto_bets} missing bets."
+        st.success(message)
     if cols[1].button(t(language, "recompute_points"), type="primary", width="stretch"):
         points = compute_and_store_points(db, config)
         cached_load_bets.clear()

@@ -82,12 +82,12 @@ def _read_packed_env_secrets() -> dict[str, Any]:
 
 def load_secret_sources() -> dict[str, Any]:
     merged: dict[str, Any] = {}
-    merged.update(_read_dot_secrets())
     if st is not None:
         try:
             merged.update(_mapping_to_dict(st.secrets))
         except Exception:
             pass
+    merged.update(_read_dot_secrets())
     merged.update(_read_packed_env_secrets())
     return merged
 
@@ -113,15 +113,15 @@ def get_database_settings(source: Mapping[str, Any] | None = None) -> DatabaseSe
     token = (
         os.getenv("TURSO_AUTH_TOKEN")
         or os.getenv("TURSO_TOKEN")
+        or secrets.get("TURSO_AUTH_TOKEN")
+        or secrets.get("TURSO_TOKEN")
+        or secrets.get("auth_token")
+        or secrets.get("token")
         or _get_nested(secrets, ("turso", "auth_token"))
         or _get_nested(secrets, ("turso", "token"))
         or _get_nested(secrets, ("database", "auth_token"))
         or _get_nested(secrets, ("database", "token"))
         or _get_nested(secrets, ("connections", "turso", "auth_token"))
-        or secrets.get("TURSO_AUTH_TOKEN")
-        or secrets.get("TURSO_TOKEN")
-        or secrets.get("auth_token")
-        or secrets.get("token")
     )
     if not url and token:
         url = DEFAULT_TURSO_URL
