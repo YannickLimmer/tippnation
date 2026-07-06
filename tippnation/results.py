@@ -6,7 +6,7 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -216,6 +216,7 @@ def poll_match_results(
     candidates = _local_candidates(config, state, current_time, force, backfill)
     if not candidates:
         return ResultPollResult(False, False, 0, 0, 0, 0, 0, False, skipped_reason="No locally due matches.")
+    candidates = _hydrate_matches_from_db(db, config.event_id, candidates)
 
     existing = _load_match_result_status(db, config.event_id, [match.match_id for match in candidates])
     unresolved: list[MatchConfig] = []
@@ -499,6 +500,39 @@ def _local_candidates(
             continue
         candidates.append(match)
     return candidates
+
+
+def _hydrate_matches_from_db(db: Database, event_id: str, matches: list[MatchConfig]) -> list[MatchConfig]:
+    if not matches:
+        return []
+    placeholders = ",".join("?" for _ in matches)
+    rows = db.query(
+        f"""
+        SELECT match_id, kickoff_utc, team_a_id, team_b_id, team_a_name, team_b_name
+        FROM matches
+        WHERE event_id = ? AND match_id IN ({placeholders})
+        """,
+        (event_id, *(match.match_id for match in matches)),
+    )
+    by_match_id = {str(row["match_id"]): row for row in rows}
+    hydrated: list[MatchConfig] = []
+    for match in matches:
+        row = by_match_id.get(match.match_id)
+        if row is None:
+            hydrated.append(match)
+            continue
+        kickoff = _parse_datetime(row.get("kickoff_utc")) or match.kickoff_utc
+        hydrated.append(
+            replace(
+                match,
+                kickoff_utc=kickoff,
+                team_a_id=str(row.get("team_a_id") or match.team_a_id),
+                team_b_id=str(row.get("team_b_id") or match.team_b_id),
+                team_a_name=str(row.get("team_a_name") or match.team_a_name),
+                team_b_name=str(row.get("team_b_name") or match.team_b_name),
+            )
+        )
+    return hydrated
 
 
 def _settle_until(match: MatchConfig) -> datetime:
